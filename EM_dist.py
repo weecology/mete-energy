@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 from scipy.stats import rv_continuous
 from scipy.optimize import bisect
+from scipy.integrate import quad
 import mete
 from mete_distributions import *
 
@@ -32,6 +33,12 @@ class theta_epsilon_m_gen(rv_continuous):
             y_i = lambda t: self._cdf(t, n, S0, N0, E0) - q_i
             x.append(bisect(y_i, self.a, self.b, xtol = 1.490116e-08))
         return np.array(x)
+    
+    def E(self, n, S0, N0, E0):
+        """Expected value of the distribution"""
+        def mom_1(x):
+            return x * self.pdf(x, n, S0, N0, E0)
+        return quad(mom_1, self.a, self.b)[0]
     
     def _argcheck(self, *args):
         self.a = 1
@@ -69,6 +76,12 @@ class theta_m_no_error_gen(rv_continuous):
             x.append(bisect(y_i, self.a, self.b, xtol = 1.490116e-08))
         return np.array(x)
     
+    def E(self, n, S0, N0, E0, c, a):
+        """Expected value of the distribution"""
+        def mom_1(x):
+            return x * self.pdf(x, n, S0, N0, E0, c, a)
+        return quad(mom_1, self.a, self.b)[0]
+    
     def _argcheck(self, *args):
         self.a = (1 / args[4]) ** (1 / args[5])
         self.b = (args[3] / args[4]) ** (1 / args[5])
@@ -102,6 +115,12 @@ class theta_epsilon_no_error_gen(rv_continuous):
             y_i = lambda t: self._cdf(t, n, S0, N0, E0, c, a) - q_i
             x.append(bisect(y_i, self.a, self.b, xtol = 1.490116e-08))
         return np.array(x)
+    
+    def E(self, n, S0, N0, E0, c, a):
+        """Expected value of the distribution"""
+        def mom_1(x):
+            return x * self.pdf(x, n, S0, N0, E0, c, a)
+        return quad(mom_1, self.a, self.b)[0]
     
     def _argcheck(self, *args):
         self.a = args[4]
