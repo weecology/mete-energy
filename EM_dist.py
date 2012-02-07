@@ -18,7 +18,7 @@ class theta_epsilon_m_gen(rv_continuous):
     
     """        
     def _pdf(self, x, n, S0, N0, E0):
-        beta = get_lambda_sad(S0, N0)
+        beta = get_beta(S0, N0)
         lambda2 = get_lambda2(S0, N0, E0)
         lambda1 = beta - lambda2
         sigma = beta + (E0 - 1) * lambda2
@@ -59,7 +59,7 @@ class theta_m_no_error_gen(rv_continuous):
     
     """        
     def _pdf(self, x, n, S0, N0, E0, c, a):
-        beta = get_lambda_sad(S0, N0)
+        beta = get_beta(S0, N0)
         lambda2 = get_lambda2(S0, N0, E0)
         lambda1 = beta - lambda2
         sigma = beta + (E0 - 1) * lambda2
@@ -99,7 +99,7 @@ class theta_epsilon_no_error_gen(rv_continuous):
 
     """        
     def _pdf(self, x, n, S0, N0, E0, c, a):
-        beta = get_lambda_sad(S0, N0)
+        beta = get_beta(S0, N0)
         lambda2 = get_lambda2(S0, N0, E0)
         lambda1 = beta - lambda2
         sigma = beta + (E0 - 1) * lambda2
