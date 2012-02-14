@@ -4,6 +4,7 @@ from scipy.stats import rv_continuous
 from scipy.optimize import bisect
 from scipy.integrate import quad
 import mete
+import sys
 from mete_distributions import *
 
 class theta_epsilon_m_gen(rv_continuous):
@@ -38,7 +39,7 @@ class theta_epsilon_m_gen(rv_continuous):
         """Expected value of the distribution"""
         def mom_1(x):
             return x * self.pdf(x, n, S0, N0, E0)
-        return quad(mom_1, self.a, self.b)[0]
+        return quad(mom_1, self.a, self.b, epsabs = sys.float_info.min ** 2)[0]
     
     def _argcheck(self, *args):
         self.a = 1
