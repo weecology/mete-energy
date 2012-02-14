@@ -1,7 +1,7 @@
 """Conversion from DBH to mass to respiration rate for trees"""
 
 from __future__ import division
-from math import log
+from math import log, exp
 import numpy as np
 
 def multi_stem_dbh(list_of_stems):
