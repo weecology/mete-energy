@@ -9,8 +9,9 @@ from EM_dist import *
 def pred_rank(S0, N0, E0):
     """Returns the predicted metabolic rate for each individual"""
     ind_mr = []
+    psi_epsilon_obj = psi_epsilon(S0, N0, E0)
     for i in range(1, N0 + 1):
-        ind_mr.append(psi_epsilon.ppf((i - 0.5) / N0, S0, N0, E0))
+        ind_mr.append(psi_epsilon_obj.ppf((i - 0.5) / N0))
     return ind_mr
 
 def plot_rank(dat, title, outfig, outfile = None):
@@ -59,6 +60,7 @@ def plot_species_EM(dat, title, outfig):
     N0 = len(spp_list)
     S0 = len(set(spp_list))
     E0 = sum(em_list)
+    theta_epsilon_obj = theta_epsilon(S0, N0, E0)
     em_obs = []
     n_obs = []
     for spp in set(spp_list):
@@ -72,7 +74,7 @@ def plot_species_EM(dat, title, outfig):
         n_obs.append(n)
     em_pred = []
     for n in range(1, max(n_obs) + 1):
-        em_pred.append(n * theta_epsilon_m.E(n, S0, N0, E0))
+        em_pred.append(n * theta_epsilon_obj.E(n))
     plt.loglog(range(1, max(n_obs) + 1), em_pred)
     plt.scatter(n_obs, em_obs)
     plt.axis([0.9, 1.1 * max(n_obs), 0.9, 1.1 * max(em_obs)])
@@ -99,9 +101,10 @@ def plot_spp_frequency(dat, spp_name, title, outfig):
     N0 = len(spp_list)
     S0 = len(set(spp_list))
     E0 = sum(em_list)
+    theta_epsilon_obj = theta_epsilon(S0, N0, E0)
     f_pred = []
     for i in np.arange(1, max(np.array(em_list) / rescale) + 1):
-        f_pred.append(theta_epsilon_m.pdf(i, n, S0, N0, E0))
+        f_pred.append(theta_epsilon_obj.pdf(i, n))
     plt.semilogx(np.arange(1, max(np.array(em_list) / rescale) + 1), f_pred)
     bins = np.exp(np.arange(log(min(em_list_spp)), log(max(em_list_spp) + 1),
                             (log(max(em_list_spp)) - log(min(em_list_spp))) / 10))
