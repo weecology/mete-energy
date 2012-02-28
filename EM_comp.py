@@ -150,5 +150,5 @@ def ind_allo_null_comp(dat, Niter = 5000):
         r2_rand = obs_pred_rsquare(np.array(group_ind_to_spp(dat)), np.array(expected))
         if r2_rand < r2_emp: 
             count += 1
-    return count
+    return count / Niter
     
