@@ -3,8 +3,10 @@
 from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 from mete_distributions import *
 from EM_dist import *
+from macroecotools import *
 
 def pred_rank(S0, N0, E0):
     """Returns the predicted metabolic rate for each individual"""
@@ -118,3 +120,35 @@ def plot_spp_frequency(dat, spp_name, title, outfig):
     plt.ylabel('Frequency')
     plt.title(title)
     plt.savefig(outfig)
+
+def group_ind_to_spp(dat):
+    """Sub-function called in ind_allo_null_comp. Returns a list of total energy consumption within each species."""
+    spp_list = set(dat['spp'])
+    out_list = []
+    for spp in spp_list:
+        dat_spp = dat[dat['spp'] == spp]
+        out_list.append(sum(dat_spp[dat_spp.dtype.names[1]]))
+    return out_list
+
+def ind_allo_null_comp(dat, Niter = 5000):
+    """Compare the empirical allocation of individuals with different
+    
+    energy consumption to species with random allocations.
+    
+    Input:
+    dat - data files in the same format as plot_e or plot_m, with one column for 
+    species identity and one column for some measure of energy consumption.
+    Niter - number of randomizations.
+    
+    """
+    E_avg = sum(dat[dat.dtype.names[1]]) / len(set(dat['spp']))
+    expected = [E_avg for i in range(len(set(dat['spp'])))]
+    r2_emp = obs_pred_rsquare(np.array(group_ind_to_spp(dat)), np.array(expected))
+    count = 0
+    for i in range(Niter):
+        random.shuffle(dat['spp'])
+        r2_rand = obs_pred_rsquare(np.array(group_ind_to_spp(dat)), np.array(expected))
+        if r2_rand < r2_emp: 
+            count += 1
+    return count
+    
