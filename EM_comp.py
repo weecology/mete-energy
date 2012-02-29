@@ -16,35 +16,47 @@ def pred_rank(S0, N0, E0):
         ind_mr.append(psi_epsilon_obj.ppf((i - 0.5) / N0))
     return ind_mr
 
-def plot_rank(dat, title, outfig, outfile = None):
-    """Plot the predicted versus observed rank energy/body mass distribution.
+def power_transform(dat, pw, outfile = None):
+    """Use power-transformed diameter as constraint in METE. 
     
-    Input: 
     dat - numpy array with two columns, species and individual-level energy/body mass
-    title - string, title for the plot
-    outfig - figure output
+    pw - exponent
     outfile - output file name if desired
     
     """
-    spp_list = []
-    em_list = []
-    for row in dat:
-        spp_list.append(row[0])
-        em_list.append(row[1])
-    em_list = np.array(em_list) / min(em_list) # Standardization
+    spp_list = dat[dat.dtype.names[0]]
+    em_list = dat[dat.dtype.names[1]] ** pw 
+    em_list = em_list / min(em_list) # Standardization
     N0 = len(spp_list)
     S0 = len(set(spp_list))
     E0 = sum(em_list)
-    plt.loglog([1, 1.1 * max(em_list)], [1, 1.1 * max(em_list)])
     ind_pred = pred_rank(S0, N0, E0)
-    plt.scatter(ind_pred, sorted(em_list))    
+    out = np.zeros((len(ind_pred), ), dtype = [('pred', 'f8'), ('obs', 'f8')])
+    out['pred'] = ind_pred
+    out['obs'] = sorted(em_list)
+    if outfile:
+        np.savetxt(outfile, out, delimiter = ",")
+    return out
+
+def plot_rank(dat, title, outfig):
+    """Plot the predicted versus observed rank energy/body mass distribution.
+    
+    Input: 
+    dat - numpy array with two columns with predicted and observed epsilon,
+          same format as the output from power-transform
+    title - string, title for the plot
+    outfig - figure output
+    
+    """
+    ind_pred = dat[dat.dtype.names[0]]
+    ind_em = dat[dat.dtype.names[1]]
+    plt.loglog([1, 1.1 * max(ind_em)], [1, 1.1 * max(ind_em)])
+    plt.scatter(ind_pred, ind_em)    
     plt.xlabel("Predicted")
     plt.ylabel("Observed")
     plt.title(title)
     plt.savefig(outfig)
-    if outfile:
-        out = np.array([[ind_pred[i], sorted(em_list)[i]] for i in range(len(ind_pred))])
-        np.savetxt(outfile, out, delimiter = ",")        
+    return None    
 
 def plot_species_EM(dat, title, outfig):
     """Plot the expected versus observed value of species-level energy or biomass
@@ -151,23 +163,3 @@ def ind_allo_null_comp(dat, Niter = 5000):
         if r2_rand < r2_emp: 
             count += 1
     return count / Niter
-
-def power_transform(dat, pw, outfile = None):
-    """Use power-transformed diameter as constraint in METE. 
-    
-    dat - numpy array with two columns, species and individual-level energy/body mass
-    pw - exponent
-    outfile - output file name if desired
-    
-    """
-    spp_list = dat[dat.dtype.names[0]]
-    em_list = dat[dat.dtype.names[1]] ** pw 
-    em_list = em_list / min(em_list) # Standardization
-    N0 = len(spp_list)
-    S0 = len(set(spp_list))
-    E0 = sum(em_list)
-    ind_pred = pred_rank(S0, N0, E0)
-    if outfile:
-        out = np.array([[ind_pred[i], sorted(em_list)[i]] for i in range(len(ind_pred))])
-        np.savetxt(outfile, out, delimiter = ",")
-    return out
