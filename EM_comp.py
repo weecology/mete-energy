@@ -136,7 +136,7 @@ def ind_allo_null_comp(dat, Niter = 5000):
     energy consumption to species with random allocations.
     
     Input:
-    dat - data files in the same format as plot_e or plot_m, with one column for 
+    dat - data file in the same format as plot_e or plot_m, with one column for 
     species identity and one column for some measure of energy consumption.
     Niter - number of randomizations.
     
@@ -151,4 +151,23 @@ def ind_allo_null_comp(dat, Niter = 5000):
         if r2_rand < r2_emp: 
             count += 1
     return count / Niter
+
+def power_transform(dat, pw, outfile = None):
+    """Use power-transformed diameter as constraint in METE. 
     
+    dat - numpy array with two columns, species and individual-level energy/body mass
+    pw - exponent
+    outfile - output file name if desired
+    
+    """
+    spp_list = dat[dat.dtype.names[0]]
+    em_list = dat[dat.dtype.names[1]] ** pw 
+    em_list = em_list / min(em_list) # Standardization
+    N0 = len(spp_list)
+    S0 = len(set(spp_list))
+    E0 = sum(em_list)
+    ind_pred = pred_rank(S0, N0, E0)
+    if outfile:
+        out = np.array([[ind_pred[i], sorted(em_list)[i]] for i in range(len(ind_pred))])
+        np.savetxt(outfile, out, delimiter = ",")
+    return out
