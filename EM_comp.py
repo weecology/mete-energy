@@ -16,7 +16,7 @@ def pred_rank(S0, N0, E0):
         ind_mr.append(psi_epsilon_obj.ppf((i - 0.5) / N0))
     return ind_mr
 
-def power_transform(dat, pw, outfile = None):
+def power_transform(dat, pw, outfile):
     """Use power-transformed diameter as constraint in METE. 
     
     dat - numpy array with two columns, species and individual-level energy/body mass
@@ -34,18 +34,17 @@ def power_transform(dat, pw, outfile = None):
     out = np.zeros((len(ind_pred), ), dtype = [('pred', 'f8'), ('obs', 'f8')])
     out['pred'] = ind_pred
     out['obs'] = sorted(em_list)
-    if outfile:
-        np.savetxt(outfile, out, delimiter = ",")
+    np.savetxt(outfile, out, delimiter = ",")
     return out
 
-def plot_rank(dat, title, outfig):
+def plot_rank(dat, title, outfig = False):
     """Plot the predicted versus observed rank energy/body mass distribution.
     
     Input: 
     dat - numpy array with two columns with predicted and observed epsilon,
-          same format as the output from power-transform
+          same format as the output from power_transform
     title - string, title for the plot
-    outfig - figure output
+    outfig - optional, output file for the figure if desired
     
     """
     ind_pred = dat[dat.dtype.names[0]]
@@ -55,48 +54,98 @@ def plot_rank(dat, title, outfig):
     plt.xlabel("Predicted")
     plt.ylabel("Observed")
     plt.title(title)
-    plt.savefig(outfig)
+    if outfig:
+        plt.savefig(outfig)
     return None    
 
-def plot_species_EM(dat, title, outfig):
+def plot_species_EM(dat, title, outfig = False, alt = False):
+    """Plot the expected versus observed value of species-level energy or biomass
+    
+    when the corresponding constraing is used. 
+    
+    alt - if True, returns a plot with abundance against species-level total.
+          if False, returns a plot with species-level average against abundance.
+    
+    """
+    spp_list = set(dat[dat.dtype.names[0]])
+    em_list = dat[dat.dtype.names[1]]
+    rescale = min(em_list)
+    em_list = np.array(em_list) / rescale
+    N0 = len(em_list)
+    S0 = len(spp_list)
+    E0 = sum(em_list)
+    theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+    em_obs = []
+    n_obs = []
+    em_obs_avg = []
+    for spp in spp_list:
+        dat_spp = dat[dat[dat.dtype.names[0]] == spp]
+        n = len(dat_spp)
+        em_intra = dat_spp[dat_spp.dtype.names[1]]
+        em_intra_sum = sum(em_intra)
+        em_obs.append(em_intra_sum)
+        em_obs_avg.append(em_intra_sum / n)
+        n_obs.append(n)
+    em_pred = []
+    em_pred_avg = []
+    for n in n_obs:
+        em_pred.append(n * theta_epsilon_obj.E(n))
+        em_pred_avg.append(theta_epsilon_obj.E(n))
+    if alt:
+        plt.loglog(em_pred_avg, n_obs)
+        plt.scatter(em_obs_avg, n_obs)
+        plt.xlabel('Species-level average')
+        plt.ylabel('Abundance')
+    else:
+        plt.loglog(n_obs, em_pred)
+        plt.scatter(n_obs, em_obs)
+        plt.xlabel('Abundance')
+        plt.ylabel('Species-level total')
+    plt.title(title)
+    if outfig: 
+        plt.savefig(outfig)
+    return None
+
+def plot_species_avg(dat, title, outfig):
     """Plot the expected versus observed value of species-level energy or biomass
     
     when the corresponding constraing is used. 
     
     """
-    spp_list = []
-    em_list = []
-    for row in dat:
-        spp_list.append(row[0])
-        em_list.append(row[1])
+    spp_list = set(dat[dat.dtype.names[0]])
+    em_list = dat[dat.dtype.names[1]]
     rescale = min(em_list)
-    em_list = np.array(em_list) / rescale
-    N0 = len(spp_list)
-    S0 = len(set(spp_list))
-    E0 = sum(em_list)
+    N0 = len(em_list)
+    S0 = len(spp_list)
+    E0 = sum(em_list) / rescale
     theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+    e_spp_level = np.zeros((S0, ), dtype=[('abd','i4'), ('MR_total', 'f8')])
     em_obs = []
     n_obs = []
     for spp in set(spp_list):
-        dat_spp = dat[dat['spp'] == spp]
-        n = len(dat_spp)
-        em_intra = []
-        for ind_spp in dat_spp: 
-            em_intra.append(ind_spp[1])
-        em_intra_sum = sum(em_intra) /  rescale
-        em_obs.append(em_intra_sum)
-        n_obs.append(n)
+        dat_spp = dat[dat[dat.dtype.names[0]] == spp]
+        n_obs.append(len(dat_spp))
+        em_obs.append(sum(dat_spp[dat.dtype.names[1]]) / rescale)
+    e_spp_level['abd'] = np.array(n_obs)
+    e_spp_level['MR_total'] = np.array(em_obs)
+    num_bin = int(ceil(log(max(e_spp_level['abd'])) / log(2)) + 1) #Set up log(2) bins
+    n_avg = []
+    em_avg = []
     em_pred = []
-    for n in range(1, max(n_obs) + 1):
-        em_pred.append(n * theta_epsilon_obj.E(n))
-    plt.loglog(range(1, max(n_obs) + 1), em_pred)
-    plt.scatter(n_obs, em_obs)
-    plt.axis([0.9, 1.1 * max(n_obs), 0.9, 1.1 * max(em_obs)])
+    for i in range(num_bin + 1):
+        record = e_spp_level[(e_spp_level['abd'] <= 2 ** i) & (e_spp_level['abd'] > 2 ** (i - 1))]
+        if len(record) > 0: 
+            n_avg.append(np.mean(record['abd']))
+            em_avg.append(sum(record['MR_total']) / sum(record['abd']))
+    for n in n_avg:
+        em_pred.append(theta_epsilon_obj.E(n))
+    plt.loglog(n_avg, em_pred)
+    plt.loglog(n_avg, em_avg)
     plt.xlabel('Abundance')
-    plt.ylabel('Species-level energy or biomass')
+    plt.ylabel('Within species average MR')
     plt.title(title)
     plt.savefig(outfig)
-    
+     
 def plot_spp_frequency(dat, spp_name, title, outfig):
     """Plot the predicted vs. observed frequency distribution of energy or body mass for a specific species."""
     dat_spp = dat[dat['spp'] == spp_name]
