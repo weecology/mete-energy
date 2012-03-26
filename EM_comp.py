@@ -82,22 +82,22 @@ def plot_species_EM(dat, title, outfig = False, alt = False):
         dat_spp = dat[dat[dat.dtype.names[0]] == spp]
         n = len(dat_spp)
         em_intra = dat_spp[dat_spp.dtype.names[1]]
-        em_intra_sum = sum(em_intra)
+        em_intra_sum = sum(em_intra) / rescale
         em_obs.append(em_intra_sum)
         em_obs_avg.append(em_intra_sum / n)
         n_obs.append(n)
     em_pred = []
     em_pred_avg = []
-    for n in n_obs:
+    for n in sorted(n_obs):
         em_pred.append(n * theta_epsilon_obj.E(n))
         em_pred_avg.append(theta_epsilon_obj.E(n))
     if alt:
-        plt.loglog(em_pred_avg, n_obs)
+        plt.loglog(em_pred_avg, sorted(n_obs))
         plt.scatter(em_obs_avg, n_obs)
         plt.xlabel('Species-level average')
         plt.ylabel('Abundance')
     else:
-        plt.loglog(n_obs, em_pred)
+        plt.loglog(sorted(n_obs), em_pred)
         plt.scatter(n_obs, em_obs)
         plt.xlabel('Abundance')
         plt.ylabel('Species-level total')
