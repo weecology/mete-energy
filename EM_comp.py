@@ -106,7 +106,7 @@ def plot_species_EM(dat, title, outfig = False, alt = False):
         plt.savefig(outfig)
     return None
 
-def plot_species_avg(dat, title, outfig):
+def plot_species_avg(dat, title, outfig = False):
     """Plot the expected versus observed value of species-level energy or biomass
     
     when the corresponding constraing is used. 
@@ -142,9 +142,11 @@ def plot_species_avg(dat, title, outfig):
     plt.loglog(n_avg, em_pred)
     plt.loglog(n_avg, em_avg)
     plt.xlabel('Abundance')
-    plt.ylabel('Within species average MR')
+    plt.ylabel('Within species average')
     plt.title(title)
-    plt.savefig(outfig)
+    if outfig:
+        plt.savefig(outfig)
+    return None
      
 def plot_spp_frequency(dat, spp_name, title, outfig):
     """Plot the predicted vs. observed frequency distribution of energy or body mass for a specific species."""
@@ -212,3 +214,29 @@ def ind_allo_null_comp(dat, Niter = 5000):
         if r2_rand < r2_emp: 
             count += 1
     return count / Niter
+
+def plot_spp_exp(dat, title, threshold = 5, outfig = False):
+    """Plot the MLE exponential parameter for each species against abundance n, 
+    
+    for all species with abundance higher than the threshold.
+    
+    """
+    spp_list = set(dat[dat.dtype.names[0]])
+    rescale = min(dat[dat.dtype.names[1]])
+    n_list = []
+    exp_list = []
+    for spp in spp_list:
+        dat_spp = dat[dat[dat.dtype.names[0]] == spp]
+        em_intra = dat_spp[dat_spp.dtype.names[1]] / rescale
+        n = len(em_intra)
+        if n >= threshold:
+            n_list.append(n)
+            exp_list.append(1 / (np.mean(em_intra) - 1))
+    plt.semilogx(n_list, exp_list, 'bo')
+    plt.xlabel('Abundance')
+    plt.ylabel('Parameter of exponential distribution')
+    plt.title(title)
+    if outfig:
+        plt.savefig(outfig)
+    return None
+    
