@@ -47,6 +47,7 @@ def plot_rank(dat, title, outfig = False):
     outfig - optional, output file for the figure if desired
     
     """
+    plt.figure()
     ind_pred = dat[dat.dtype.names[0]]
     ind_em = dat[dat.dtype.names[1]]
     plt.loglog([1, 1.1 * max(ind_em)], [1, 1.1 * max(ind_em)])
@@ -67,6 +68,7 @@ def plot_species_EM(dat, title, outfig = False, alt = False):
           if False, returns a plot with species-level average against abundance.
     
     """
+    plt.figure()
     spp_list = set(dat[dat.dtype.names[0]])
     em_list = dat[dat.dtype.names[1]]
     rescale = min(em_list)
@@ -112,6 +114,7 @@ def plot_species_avg(dat, title, outfig = False):
     when the corresponding constraing is used. 
     
     """
+    plt.figure()
     spp_list = set(dat[dat.dtype.names[0]])
     em_list = dat[dat.dtype.names[1]]
     rescale = min(em_list)
@@ -150,6 +153,7 @@ def plot_species_avg(dat, title, outfig = False):
      
 def plot_spp_frequency(dat, spp_name, title, outfig):
     """Plot the predicted vs. observed frequency distribution of energy or body mass for a specific species."""
+    plt.figure()
     dat_spp = dat[dat['spp'] == spp_name]
     n = len(dat_spp)
     spp_list = []
@@ -221,6 +225,7 @@ def plot_spp_exp(dat, title, threshold = 5, outfig = False):
     for all species with abundance higher than the threshold.
     
     """
+    plt.figure()
     spp_list = set(dat[dat.dtype.names[0]])
     rescale = min(dat[dat.dtype.names[1]])
     n_list = []
