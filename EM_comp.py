@@ -31,11 +31,11 @@ def power_transform(dat, pw, outfile):
     for i in range(1, N0 + 1):
         ind_mr.append(psi_epsilon_obj.ppf((i - 0.5) / N0))
         if i % 1000 == 0: # Write to file every 1000 rows to avoid crash
-            out_piece = np.column_stack((ind_mr, em_list[i - 1000 , i]))
+            out_piece = np.column_stack((ind_mr, em_list[(i - 1000):i]))
             out_writer.writerows(out_piece)
             ind_mr = []
     if len(ind_mr) > 0: 
-        out_piece = np.column_stack((ind_mr, em_list[i - i % 1000, i]))
+        out_piece = np.column_stack((ind_mr, em_list[(i - i % 1000):i]))
         out_writer.writerows(out_piece)
     out.close()
     return None
