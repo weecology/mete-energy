@@ -4,17 +4,10 @@ from __future__ import division
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import csv
 from mete_distributions import *
 from EM_dist import *
 from macroecotools import *
-
-def pred_rank(S0, N0, E0):
-    """Returns the predicted metabolic rate for each individual"""
-    ind_mr = []
-    psi_epsilon_obj = psi_epsilon(S0, N0, E0)
-    for i in range(1, N0 + 1):
-        ind_mr.append(psi_epsilon_obj.ppf((i - 0.5) / N0))
-    return ind_mr
 
 def power_transform(dat, pw, outfile):
     """Use power-transformed diameter as constraint in METE. 
@@ -26,16 +19,26 @@ def power_transform(dat, pw, outfile):
     """
     spp_list = dat[dat.dtype.names[0]]
     em_list = dat[dat.dtype.names[1]] ** pw 
-    em_list = em_list / min(em_list) # Standardization
+    em_list = sorted(em_list) / min(em_list) # Standardization
     N0 = len(spp_list)
     S0 = len(set(spp_list))
     E0 = sum(em_list)
-    ind_pred = pred_rank(S0, N0, E0)
-    out = np.zeros((len(ind_pred), ), dtype = [('pred', 'f8'), ('obs', 'f8')])
-    out['pred'] = ind_pred
-    out['obs'] = sorted(em_list)
-    np.savetxt(outfile, out, delimiter = ",")
-    return out
+    psi_epsilon_obj = psi_epsilon(S0, N0, E0)
+    
+    out = open(outfile, 'wb')
+    out_writer = csv.writer(out)
+    ind_mr = [] # Result piece
+    for i in range(1, N0 + 1):
+        ind_mr.append(psi_epsilon_obj.ppf((i - 0.5) / N0))
+        if i % 1000 == 0: # Write to file every 1000 rows to avoid crash
+            out_piece = np.column_stack((ind_mr, em_list[i - 1000 , i]))
+            out_writer.writerows(out_piece)
+            ind_mr = []
+    if len(ind_mr) > 0: 
+        out_piece = np.column_stack((ind_mr, em_list[i - i % 1000, i]))
+        out_writer.writerows(out_piece)
+    out.close()
+    return None
 
 def plot_rank(dat, title, outfig = False):
     """Plot the predicted versus observed rank energy/body mass distribution.
