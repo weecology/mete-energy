@@ -12,6 +12,7 @@ def xsquare_pdf(x, dist, *pars):
     and a given value x (i.e., f_Y(x ** 2)). 
     
     """
+    x = np.array(x)
     return 1 / x * dist.pdf(x, *pars) / 2 
 
 def xsquare_ppf(q, dist, *pars):
@@ -20,6 +21,7 @@ def xsquare_ppf(q, dist, *pars):
     and a given quantile q.
     
     """
+    q = np.array(q)
     return dist.ppf(q, *pars) ** 2
     
 def pred_rank_dbh2_alt(dat, dist, outfile, *pars):
@@ -65,27 +67,33 @@ def aic_weight_multiple(n, *AICc):
     weight = np.array(weight) / sum(np.array(weight))
     return weight
 
-def weights(dat):
-    ind_em = dat[dat.dtype.names[1]]
-    ind_em = ind_em / min(ind_em)
-    E0 = sum(ind_em ** 2)
-    N0 = len(ind_em)
-    S0 = len(set(dat[dat.dtype.names[0]]))
-    dist_list = [expon_pdf, pareto_pdf, weibull_pdf]
-    dist_solver_list = [trunc_expon_solver, trunc_pareto_solver, trunc_weibull_solver]
+def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
+    """Calculates the AICc weights for the four distributions:
+    
+    truncated expontial, truncated Pareto, truncated Weibull, METE.
+    
+    """
+    dbh_raw = dat[dat.dtype.names[1]]
+    dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
+    dbh2_scale = dbh_scale ** 2
+
+    ll_expon = sum(np.log(xsquare_pdf(dbh_scale, trunc_expon, expon_par, 1)))
+    ll_pareto = sum(np.log(xsquare_pdf(dbh_scale, trunc_pareto, pareto_par, 1)))
+    ll_weibull = sum(np.log(xsquare_pdf(dbh_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
+    ll_list = [ll_expon, ll_pareto, ll_weibull]
     k_list = [2, 2, 3]
     AICc_list = []
-    for i, dist in enumerate(dist_list):
-        ll = 0
-        obj = dist_square(ind_em, 1, dist, dist_solver_list[i])
-        for ind_value in ind_em:
-            ll += log(obj.pdf(ind_value))
-        AICc_dist = AICc(k_list[i], ll, len(ind_em))
+    for i, ll in enumerate(ll_list):
+        AICc_dist = AICc(k_list[i], ll, N0)
         AICc_list.append(AICc_dist)
+    
+    E0 = sum(dbh2_scale)
+    N0 = len(dbh2_scale)
+    S0 = len(set(dat[dat.dtype.names[0]]))
     psi = psi_epsilon(S0, N0, E0)
     ll_psi = 0
-    for ind_value in ind_em:
-        ll_psi += log(psi.pdf(ind_value ** 2))
+    for dbh2 in dbh2_scale:
+        ll_psi += log(psi.pdf(dbh2))
     AICc_psi = AICc(3, ll_psi, N0)
     AICc_list.append(AICc_psi)
     return aic_weight_multiple(N0, *AICc_list)
