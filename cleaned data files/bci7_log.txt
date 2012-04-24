@@ -1,4 +1,0 @@
- - Excluded records that are dead or have missing dbh. 
- - Removed all records with dbh = 10 because it is not clear from the metadata whether the smallest size 
-	class includeds individuals with dbh between 9.5 or 10 to 10.5. 
- - Checked for ferns - none found. 
