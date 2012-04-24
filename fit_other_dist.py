@@ -54,10 +54,8 @@ def aic_weight_multiple(n, *AICc):
     Based on information from Burnham and Anderson (2002).
     
     Keyword arguments:
-    AICc_dist1  --  AICc for primary model of interest
-    AICc_dist2  --  AICc for alternative model
     n           --  number of observations.
-    cutoff      --  minimum number of observations required to generate a weight.
+    AICc        --  AICc values to be compared. 
     
     """
     AICc_min = min(AICc)
