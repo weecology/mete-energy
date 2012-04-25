@@ -8,16 +8,16 @@ from mete_distributions import *
 from math import exp
 
 def xsquare_pdf(x, dist, *pars):
-    """Calculates the pdf for x**2, given the distribution of variable X 
+    """Calculates the pdf for x, given the distribution of variable Y = sqrt(X) 
     
-    and a given value x (i.e., f_Y(x ** 2)). 
+    and a given value x. 
     
     """
     x = np.array(x)
-    return 1 / x * dist.pdf(x, *pars) / 2 
+    return 1 / x * dist.pdf(x ** 0.5, *pars) / 2 
 
 def xsquare_ppf(q, dist, *pars):
-    """Calculate the ppf for x**2, given the distribution of variable X 
+    """Calculate the ppf for x, given the distribution of variable Y = sqrt(X) 
     
     and a given quantile q.
     
@@ -76,9 +76,9 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
     dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
     dbh2_scale = dbh_scale ** 2
 
-    ll_expon = sum(np.log(xsquare_pdf(dbh_scale, trunc_expon, expon_par, 1)))
-    ll_pareto = sum(np.log(xsquare_pdf(dbh_scale, trunc_pareto, pareto_par, 1)))
-    ll_weibull = sum(np.log(xsquare_pdf(dbh_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
+    ll_expon = sum(np.log(xsquare_pdf(dbh2_scale, trunc_expon, expon_par, 1)))
+    ll_pareto = sum(np.log(xsquare_pdf(dbh2_scale, trunc_pareto, pareto_par, 1)))
+    ll_weibull = sum(np.log(xsquare_pdf(dbh2_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
     ll_list = [ll_expon, ll_pareto, ll_weibull]
     k_list = [2, 2, 3]
     AICc_list = []
@@ -118,9 +118,9 @@ def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, out
         psi_pdf.append(psi.pdf(x))
     
     plt.figure()
-    plt.loglog(x_array, xsquare_pdf(np.sqrt(x_array), trunc_expon, expon_par, 1), 'r', linewidth = 2)
-    plt.loglog(x_array, xsquare_pdf(np.sqrt(x_array), trunc_pareto, pareto_par, 1), 'b', linewidth = 2)
-    plt.loglog(x_array, xsquare_pdf(np.sqrt(x_array), trunc_weibull, weibull_k, weibull_lmd, 1), 
+    plt.loglog(x_array, xsquare_pdf(x_array, trunc_expon, expon_par, 1), 'r', linewidth = 2)
+    plt.loglog(x_array, xsquare_pdf(x_array, trunc_pareto, pareto_par, 1), 'b', linewidth = 2)
+    plt.loglog(x_array, xsquare_pdf(x_array, trunc_weibull, weibull_k, weibull_lmd, 1), 
                'g', linewidth = 2)
     plt.loglog(x_array, psi_pdf, 'm', linewidth = 2)
     if legend:
