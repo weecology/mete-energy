@@ -96,7 +96,7 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
     AICc_list.append(AICc_psi)
     return aic_weight_multiple(N0, *AICc_list)
 
-def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, outfig, legend = False):
+def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, plot_obj = None, legend = False):
     """Plots the histogram of observed dbh**2, with predicted pdf curves on top.""" 
     dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
@@ -116,19 +116,19 @@ def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, out
     for x in x_array:
         psi_pdf.append(psi.pdf(x))
     
-    plt.figure()
-    plt.loglog(x_array, xsquare_pdf(x_array, trunc_expon, expon_par, 1), 'r', linewidth = 2)
-    plt.loglog(x_array, xsquare_pdf(x_array, trunc_pareto, pareto_par, 1), 'b', linewidth = 2)
-    plt.loglog(x_array, xsquare_pdf(x_array, trunc_weibull, weibull_k, weibull_lmd, 1), 
-               'g', linewidth = 2)
-    plt.loglog(x_array, psi_pdf, 'm', linewidth = 2)
+    if plot_obj == None:
+        plot_obj = plt.figure()
+    plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_expon, expon_par, 1), '#FF4040', 
+                    linewidth = 2, label = 'Truncated exponential')
+    plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_pareto, pareto_par, 1), '#00BFFF', 
+                    linewidth = 2, label = 'Truncated Pareto')
+    plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_weibull, weibull_k, weibull_lmd, 1), 
+                    '#000000', linewidth = 3, label = 'Truncated Weibull')
+    plot_obj.loglog(x_array, psi_pdf, '#9400D3', linewidth = 2, label = 'METE')
     if legend:
-        plt.legend(('Truncated exponential', 'Truncated Pareto', 'Truncated Weibull', 
-                    'METE'),'upper right')
-    plt.bar(2 ** np.array(range(num_bin)), emp_pdf, color = '#A9A9A9', 
+        plot_obj.legend(loc = 1, prop = {'size': 8})
+    plot_obj.bar(2 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
             width = 0.4 * 2 ** np.array(range(num_bin)))
-    plt.xlabel('DBH ** 2')
-    plt.ylabel('Probability density')
-    plt.title(title)
-    plt.savefig(outfig)
-    return None
+    #plot_obj.xlabel(r'$DBH^2$')
+    #plot_obj.ylabel('Probability Density')
+    return plot_obj
