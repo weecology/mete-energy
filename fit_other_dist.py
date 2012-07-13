@@ -14,7 +14,7 @@ def xsquare_pdf(x, dist, *pars):
     
     """
     x = np.array(x)
-    return 1 / x * dist.pdf(x ** 0.5, *pars) / 2 
+    return 1 / x ** 0.5 * dist.pdf(x ** 0.5, *pars) / 2 
 
 def xsquare_ppf(q, dist, *pars):
     """Calculate the ppf for x, given the distribution of variable Y = sqrt(X) 
@@ -78,7 +78,7 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
 
     N0 = len(dbh2_scale)
     E0 = sum(dbh2_scale)
-    S0 = len(set(dat[dat.dtype.names[0]]))
+    S0 = len(set(dat[dat.dtype.names[1]]))
     ll_expon = sum(np.log(xsquare_pdf(dbh2_scale, trunc_expon, expon_par, 1)))
     ll_pareto = sum(np.log(xsquare_pdf(dbh2_scale, trunc_pareto, pareto_par, 1)))
     ll_weibull = sum(np.log(xsquare_pdf(dbh2_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
@@ -98,12 +98,12 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
 
 def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, outfig, legend = False):
     """Plots the histogram of observed dbh**2, with predicted pdf curves on top.""" 
-    dbh_raw = dat[dat.dtype.names[1]]
+    dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
     dbh2_scale = dbh_scale ** 2
     E0 = sum(dbh2_scale)
     N0 = len(dbh2_scale)
-    S0 = len(set(dat[dat.dtype.names[0]]))
+    S0 = len(set(dat[dat.dtype.names[1]]))
 
     num_bin = int(ceil(log(max(dbh2_scale)) / log(2))) #Set up log(2) 
     emp_pdf = []
