@@ -39,9 +39,9 @@ get_par = function(dat_list, out_file){
       par_out[k, 2] = site_list[j]
       dat_site = dat[dat[, 1] == site_list[j], ]
       dat_dbh = dat_site[, 3] / min(dat_site[, 3]) # Rescale so that min MR is 1
-      par_out[k, 3] = trunc_expon_par_est(dat_dbh^2, 1)
-      par_out[k, 4] = trunc_pareto_par_est(dat_dbh^2, 1)
-      par_out[k, 5:6] = trunc_weibull_par_est(dat_dbh^2, 1)
+      par_out[k, 3] = trunc_expon_par_est(dat_dbh, 1)
+      par_out[k, 4] = trunc_pareto_par_est(dat_dbh, 1)
+      par_out[k, 5:6] = trunc_weibull_par_est(dat_dbh, 1)
       k = k + 1
     }
   }
