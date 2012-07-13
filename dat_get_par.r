@@ -1,10 +1,16 @@
 source('dist_par_est.r')
 
-dat = read.csv(pipe('cat /dev/stdin'))
-dat_dbh = dat[,2]
-dat_dbh = dat_dbh / min(dat_dbh)
-trunc_expon_par = trunc_expon_par_est(dat_dbh, 1)
-trunc_pareto_par = trunc_pareto_par_est(dat_dbh, 1)
-trunc_weibull_par = trunc_weibull_par_est(dat_dbh, 1)
+BCI = read_file('bci7.csv')
+Luquillo = read_file('lfdp2.csv')
+WesternGhats = read_file('WesternGhats.csv')
+FERP = read_file('FERP.csv')
+Oosting = read_file('Palmer2007.csv')
+LaSelva = read_file('Baribault2011.csv')
 
-print(c(trunc_expon_par, trunc_pareto_par, trunc_weibull_par))
+dat_list = list(BCI = BCI, Luquillo = Luquillo, WesternGhats = WesternGhats,
+  FERP = FERP, Oosting = Oosting, LaSelva = LaSelva)
+out_names = c('BCI', 'Luquillo', 'WesternGhats', 'FERP', 'Oosting', 'LaSelva')
+
+get_par(dat_list, 'par_est_6sites.csv')
+
+
