@@ -72,10 +72,13 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
     truncated expontial, truncated Pareto, truncated Weibull, METE.
     
     """
-    dbh_raw = dat[dat.dtype.names[1]]
+    dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
     dbh2_scale = dbh_scale ** 2
 
+    N0 = len(dbh2_scale)
+    E0 = sum(dbh2_scale)
+    S0 = len(set(dat[dat.dtype.names[0]]))
     ll_expon = sum(np.log(xsquare_pdf(dbh2_scale, trunc_expon, expon_par, 1)))
     ll_pareto = sum(np.log(xsquare_pdf(dbh2_scale, trunc_pareto, pareto_par, 1)))
     ll_weibull = sum(np.log(xsquare_pdf(dbh2_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
@@ -85,10 +88,6 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
     for i, ll in enumerate(ll_list):
         AICc_dist = AICc(k_list[i], ll, N0)
         AICc_list.append(AICc_dist)
-    
-    E0 = sum(dbh2_scale)
-    N0 = len(dbh2_scale)
-    S0 = len(set(dat[dat.dtype.names[0]]))
     psi = psi_epsilon(S0, N0, E0)
     ll_psi = 0
     for dbh2 in dbh2_scale:
