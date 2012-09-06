@@ -176,7 +176,7 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
-    plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred))
+    plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs),                                                                               np.array(pred)))
     return fig
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
