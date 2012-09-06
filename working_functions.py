@@ -173,11 +173,12 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
     f1_write = open(data_dir + dataset_name + '_obs_pred_avg_mr.csv', 'wb')
     f1 = csv.writer(f1_write)
     f2_write = open(data_dir + dataset_name + '_scaled_par.csv', 'wb')
+    f2 = csv.writer(f2_write)
     
     for site in usites:
         subdat = raw_data[raw_data["site"] == site]
         dbh_raw = subdat[subdat.dtype.names[2]]
-        dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
+        dbh_scale = np.array(dbh_raw / min(dbh_raw))
         dbh2_scale = dbh_scale ** 2
         E0 = sum(dbh2_scale)
         N0 = len(dbh2_scale)
@@ -191,7 +192,7 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             psi = psi_epsilon(S0, N0, E0)
             theta_epsilon_obj = theta_epsilon(S0, N0, E0)
             for sp in S_list:
-                sp_dbh2 = dbh2_scale[subdat.dtype.names[1] == sp]
+                sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
                 abd.append(len(sp_dbh2))
                 mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
                 scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
@@ -200,9 +201,10 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             #save results to a csv file:
             results1 = ((np.column_stack((np.array([site] * len(abd)), np.array(mr_avg_obs), 
                                           np.array(mr_avg_pred)))))
-            f1.writerows(results)
+            f1.writerows(results1)
             results2 = ((np.column_stack((np.array([site] * len(abd)), np.array(scaled_par_list), 
                                           np.array(abd)))))
+            f2.writerows(results2)
     f1_write.close()
     f2_write.close()
 
@@ -234,7 +236,7 @@ def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
              rotation = 'vertical')
     plt.savefig('obs_pred_sad.png', dpi = 400)
 
-def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 2):
+def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     """Plot the observed vs predicted cdf for multiple datasets."""
     fig = plot_obs_pred(datasets, data_dir, radius, 0, '_obs_pred_isd_cdf.csv')
     fig.text(0.5, 0.04, 'Predicted F(x)', ha = 'center', va = 'center')
