@@ -1,5 +1,6 @@
 """Module with all working functions for the METE energy project"""
 
+from __future__ import division
 import numpy as np
 import csv
 import matplotlib
@@ -67,41 +68,41 @@ def run_test(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
             f1.writerows(results)
     f1_write.close()
 
-def plot_obs_pred_sad(datasets, data_dir='./data/', radius=2):
-    """Multiple obs-predicted plotter
+#def plot_obs_pred_sad(datasets, data_dir='./data/', radius=2):
+    #"""Multiple obs-predicted plotter
     
-    (Copied and modified from White et al. 2012)
+    #(Copied and modified from White et al. 2012)
     
-    """
-    # Only for illustration purpose for the poster. 
-    fig = plt.figure(figsize = (7, 7))
-    num_datasets = len(datasets)
-    for i, dataset in enumerate(datasets):
-        obs_pred_data = import_obs_pred_data(data_dir + dataset + '_obs_pred.csv') 
-        site = ((obs_pred_data["site"]))
-        obs = ((obs_pred_data["obs"]))
-        pred = ((obs_pred_data["pred"]))
+    #"""
+    ## Only for illustration purpose for the poster. 
+    #fig = plt.figure(figsize = (7, 7))
+    #num_datasets = len(datasets)
+    #for i, dataset in enumerate(datasets):
+        #obs_pred_data = import_obs_pred_data(data_dir + dataset + '_obs_pred.csv') 
+        #site = ((obs_pred_data["site"]))
+        #obs = ((obs_pred_data["obs"]))
+        #pred = ((obs_pred_data["pred"]))
         
-        axis_min = 0.5 * min(obs)
-        axis_max = 2 * max(obs)
-        ax = fig.add_subplot(2,2,i+1)
-        macroecotools.plot_color_by_pt_dens(pred, obs, radius, loglog=1, 
-                                            plot_obj=plt.subplot(2,2,i+1))      
-        plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
-        plt.xlim(axis_min, axis_max)
-        plt.ylim(axis_min, axis_max)
-        plt.subplots_adjust(wspace=0.29, hspace=0.29)  
-        plt.title(dataset)
-        plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred))
-        ## Create inset for histogram of site level r^2 values
-        #axins = inset_axes(ax, width="30%", height="30%", loc=4)
-        #hist_mete_r2(site, np.log10(obs), np.log10(pred))
-        #plt.setp(axins, xticks=[], yticks=[])
+        #axis_min = 0.5 * min(obs)
+        #axis_max = 2 * max(obs)
+        #ax = fig.add_subplot(2,2,i+1)
+        #macroecotools.plot_color_by_pt_dens(pred, obs, radius, loglog=1, 
+                                            #plot_obj=plt.subplot(2,2,i+1))      
+        #plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
+        #plt.xlim(axis_min, axis_max)
+        #plt.ylim(axis_min, axis_max)
+        #plt.subplots_adjust(wspace=0.29, hspace=0.29)  
+        #plt.title(dataset)
+        #plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred))
+        ### Create inset for histogram of site level r^2 values
+        ##axins = inset_axes(ax, width="30%", height="30%", loc=4)
+        ##hist_mete_r2(site, np.log10(obs), np.log10(pred))
+        ##plt.setp(axins, xticks=[], yticks=[])
     
-    fig.text(0.5, 0.04, 'Predicted Abundance', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, 'Observed Abundance', ha = 'center', va = 'center', 
-             rotation = 'vertical')
-    plt.savefig('obs_pred_plots.png', dpi=400)
+    #fig.text(0.5, 0.04, 'Predicted Abundance', ha = 'center', va = 'center')
+    #fig.text(0.04, 0.5, 'Observed Abundance', ha = 'center', va = 'center', 
+             #rotation = 'vertical')
+    #plt.savefig('obs_pred_plots.png', dpi=400)
 
 def get_mete_pred_cdf(dbh2_scale, S0, N0, E0):
     """Compute the cdf of the individual metabolic rate (size) distribution
@@ -124,7 +125,7 @@ def get_obs_cdf(dat):
         emp_cdf.append(point_cdf)
     return np.array(emp_cdf)
 
-def get_obs_pred_cdf(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
+def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
     """Use data to compare the predicted and empirical CDFs of the 
     
     individual metabolic rate distribution and get results in csv files.
@@ -149,7 +150,7 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
         N0 = len(dbh2_scale)
         S0 = len(set(subdat[subdat.dtype.names[1]]))
         if S0 > cutoff:
-            print("%s, Site %s, S=%s, N=%s" % (dataset_name, i, S0, N0))
+            print("%s, Site %s, S=%s, N=%s" % (dataset_name, site, S0, N0))
             # Generate predicted values and p (e ** -beta) based on METE:
             cdf_pred = get_mete_pred_cdf(dbh2_scale, S0, N0, E0)
             cdf_obs = get_obs_cdf(dbh2_scale)
@@ -158,6 +159,42 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
             f1.writerows(results)
     f1_write.close()
 
+def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
+    """Generic function to generate an observed vs predicted figure with 1:1 line"""
+    fig = plt.figure(figsize = (7, 7))
+    num_datasets = len(datasets)
+    obs = []
+    pred = []
+    for i, dataset in enumerate(datasets):
+        obs_pred_data = import_obs_pred_data(data_dir + dataset + filename) 
+        obs.extend(list(obs_pred_data['obs']))
+        pred.extend(list(obs_pred_data['pred']))
+
+    axis_min = 0.5 * min(obs+pred)
+    axis_max = max(obs+pred)
+    macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog)      
+    plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
+    plt.xlim(axis_min, axis_max)
+    plt.ylim(axis_min, axis_max)
+    plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred))
+    return fig
+
+def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
+    """Plot the observed vs predicted abundance for each species for multiple datasets."""
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred.csv')
+    fig.text(0.5, 0.04, 'Predicted Abundance', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, 'Observed Abundance', ha = 'center', va = 'center', 
+             rotation = 'vertical')
+    plt.savefig('obs_pred_sad.png', dpi = 400)
+
+def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 2):
+    """Plot the observed vs predicted cdf for multiple datasets."""
+    fig = plot_obs_pred(datasets, data_dir, radius, 0, '_obs_pred_isd_cdf.csv')
+    fig.text(0.5, 0.04, 'Predicted F(x)', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, 'Observed F(x)', ha = 'center', va = 'center', 
+             rotation = 'vertical')
+    plt.savefig('obs_pred_cdf.png', dpi = 400)
+    
 def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
     """Create a csv file with AICc weights of the four distributions"""
     f1_write = open(data_dir + 'weight_table.csv', 'wb')
