@@ -157,7 +157,7 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             f1.writerows(results)
     f1_write.close()
     
-def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9, n_cutoff = 4):
     """Compare the predicted and empirical average dbh^2 as well as compute the scaled 
     
     intra-specific energy distribution for each species and get results in csv files.
@@ -193,11 +193,12 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             theta_epsilon_obj = theta_epsilon(S0, N0, E0)
             for sp in S_list:
                 sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
-                abd.append(len(sp_dbh2))
-                mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
-                scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
-                scaled_par_list.append(scaled_par)
-                mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
+                if len(sp_dbh2) > n_cutoff: 
+                    abd.append(len(sp_dbh2))
+                    mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
+                    scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
+                    scaled_par_list.append(scaled_par)
+                    mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
             #save results to a csv file:
             results1 = ((np.column_stack((np.array([site] * len(abd)), np.array(mr_avg_obs), 
                                           np.array(mr_avg_pred)))))
@@ -219,7 +220,7 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
         obs.extend(list(obs_pred_data['obs']))
         pred.extend(list(obs_pred_data['pred']))
 
-    axis_min = 0.5 * min(obs+pred)
+    axis_min = 0.9 * min(obs+pred)
     axis_max = 1.1 * max(obs+pred)
     macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
@@ -243,7 +244,27 @@ def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     fig.text(0.04, 0.5, 'Observed F(x)', ha = 'center', va = 'center', 
              rotation = 'vertical')
     plt.savefig('obs_pred_cdf.png', dpi = 400)
+
+def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
+    """Plot the observed vs predicted species-level average metabolic rate 
     
+    for all species across multiple datasets.
+    
+    """
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_avg_mr.csv')
+    fig.text(0.5, 0.04, 'Predicted Species-Average Metabolic Rate', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, 'Observed Species-Average Metabolic Rate', ha = 'center', va = 'center', 
+             rotation = 'vertical')
+    plt.savefig('obs_pred_average_mr.png', dpi = 400)
+
+def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
+    """Plot the scaled intra-specific energy distribution parameter against abundance."""
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_scaled_par.csv')
+    fig.text(0.5, 0.04, 'Abundance', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, r'Scaled $\lambda$ for Within Species Distribution', ha = 'center', 
+             va = 'center', rotation = 'vertical')
+    plt.savefig('intra_scaled_par.png', dpi = 400)
+
 def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
     """Create a csv file with AICc weights of the four distributions"""
     f1_write = open(data_dir + 'weight_table.csv', 'wb')
