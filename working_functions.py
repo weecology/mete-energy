@@ -121,7 +121,7 @@ def get_obs_cdf(dat):
     dat = np.array(dat)
     emp_cdf = []
     for point in dat:
-        point_cdf = len(dat[dat <= point]) / len(dat)
+        point_cdf = len(dat[dat < point]) / len(dat)
         emp_cdf.append(point_cdf)
     return np.array(emp_cdf)
 
@@ -150,14 +150,61 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
         N0 = len(dbh2_scale)
         S0 = len(set(subdat[subdat.dtype.names[1]]))
         if S0 > cutoff:
-            print("%s, Site %s, S=%s, N=%s" % (dataset_name, site, S0, N0))
-            # Generate predicted values and p (e ** -beta) based on METE:
             cdf_pred = get_mete_pred_cdf(dbh2_scale, S0, N0, E0)
             cdf_obs = get_obs_cdf(dbh2_scale)
             #save results to a csv file:
             results = ((np.column_stack((np.array([site] * len(cdf_obs)), cdf_obs, cdf_pred))))
             f1.writerows(results)
     f1_write.close()
+    
+def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+    """Compare the predicted and empirical average dbh^2 as well as compute the scaled 
+    
+    intra-specific energy distribution for each species and get results in csv files.
+    Keyword arguments:
+    raw_data : numpy structured array with 3 columns: 'site','sp','dbh'
+    dataset_name : short code that will indicate the name of the dataset in
+                    the output file names
+    data_dir : directory in which to store output
+    cutoff : minimum number of species required to run - 1.
+    
+    """
+    usites = np.sort(list(set(raw_data["site"])))
+    f1_write = open(data_dir + dataset_name + '_obs_pred_avg_mr.csv', 'wb')
+    f1 = csv.writer(f1_write)
+    f2_write = open(data_dir + dataset_name + '_scaled_par.csv', 'wb')
+    
+    for site in usites:
+        subdat = raw_data[raw_data["site"] == site]
+        dbh_raw = subdat[subdat.dtype.names[2]]
+        dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
+        dbh2_scale = dbh_scale ** 2
+        E0 = sum(dbh2_scale)
+        N0 = len(dbh2_scale)
+        S_list = set(subdat[subdat.dtype.names[1]])
+        S0 = len(S_list)
+        if S0 > cutoff:
+            mr_avg_pred = []
+            mr_avg_obs = []
+            abd = []
+            scaled_par_list = []
+            psi = psi_epsilon(S0, N0, E0)
+            theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+            for sp in S_list:
+                sp_dbh2 = dbh2_scale[subdat.dtype.names[1] == sp]
+                abd.append(len(sp_dbh2))
+                mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
+                scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
+                scaled_par_list.append(scaled_par)
+                mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
+            #save results to a csv file:
+            results1 = ((np.column_stack((np.array([site] * len(abd)), np.array(mr_avg_obs), 
+                                          np.array(mr_avg_pred)))))
+            f1.writerows(results)
+            results2 = ((np.column_stack((np.array([site] * len(abd)), np.array(scaled_par_list), 
+                                          np.array(abd)))))
+    f1_write.close()
+    f2_write.close()
 
 def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
@@ -171,12 +218,12 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
         pred.extend(list(obs_pred_data['pred']))
 
     axis_min = 0.5 * min(obs+pred)
-    axis_max = max(obs+pred)
+    axis_max = 1.1 * max(obs+pred)
     macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
-    plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs),                                                                               np.array(pred)))
+    plt.text(axis_max * 0.8, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs),                                                                               np.array(pred)))
     return fig
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
