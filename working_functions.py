@@ -226,7 +226,8 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
-    plt.text(axis_max * 0.8, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs),                                                                               np.array(pred)))
+    plt.text(axis_max * 0.8, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), 
+                                                                                            np.array(pred)))
     return fig
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
@@ -244,6 +245,150 @@ def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     fig.text(0.04, 0.5, 'Observed F(x)', ha = 'center', va = 'center', 
              rotation = 'vertical')
     plt.savefig('obs_pred_cdf.png', dpi = 400)
+
+def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
+    """Compare the three visual representation of ISD: histogram with pdf, 
+    
+    predicted and empirical cdf, 1:1 plot of cdf. 
+    
+    """
+    for j, dataset in enumerate(datasets):
+        usites = np.sort(list(set(dataset["site"])))
+        for site in usites:
+            fig = plt.figure(figsize = (7, 3))
+            dat_site = dataset[dataset['site'] == site]
+            dbh_raw = dat_site[dat_site.dtype.names[2]]
+            dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            N0 = len(dbh2_scale)
+            S0 =  len(set(dat_site[dat_site.dtype.names[1]]))
+            psi = psi_epsilon(S0, N0, E0)
+            # Plot histogram with pdf
+            num_bin = int(ceil(log(max(dbh_scale)) / log(2)))
+            emp_pdf = []
+            for i in range(num_bin):
+                count = len(dbh_scale[(dbh_scale < 2 ** (i + 1)) & (dbh_scale >= 2 ** i)])
+                emp_pdf.append(count / N0 / 2 ** i)
+            psi_pdf = []
+            x_array = np.arange(1, ceil(max(dbh_scale)) + 1)
+            for x in x_array:
+                psi_pdf.append(float(ysquareroot_pdf(x, psi)))
+            plot_obj = plt.subplot(1, 3, 1)
+            plot_obj.loglog(x_array, psi_pdf, '#9400D3', linewidth = 2, label = 'METE')
+            plot_obj.bar(2 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
+                    width = 0.4 * 2 ** np.array(range(num_bin)))
+            plt.xlabel('DBH')
+            plt.ylabel('Probability Density')
+            # Plot predicted and empirical cdf
+            plot_obj = plt.subplot(1, 3, 2)
+            pred_cdf = get_mete_pred_cdf(dbh2_scale, S0, N0, E0)
+            emp_cdf = get_obs_cdf(dbh2_scale)
+            plot_obj.loglog(dbh2_scale, pred_cdf, color = '#9400D3', linestyle = '-', linewidth = 2)
+            plot_obj.loglog(dbh2_scale, emp_cdf, 'r-', linewidth = 2)
+            plt.xlabel(r'$DBH^2$')
+            plt.ylabel('F(x)')
+            # Plot predicted cdf against empirical cdf
+            plot_obj = plt.subplot(1, 3, 3)
+            obs = emp_cdf
+            pred = pred_cdf
+            axis_min = 0.9 * min(list(obs)+list(pred))
+            axis_max = 1.1 * max(list(obs)+list(pred))
+            macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), 0.05, loglog=0, 
+                                                plot_obj=plt.subplot(1,3,3))      
+            plot_obj.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
+            plt.xlim(axis_min, axis_max)
+            plt.ylim(axis_min, axis_max)
+            plt.xlabel('Predicted F(x)')
+            plt.ylabel('Observed F(x)')
+            plt.text(axis_max * 0.8, axis_max / 3, 
+                     r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)))
+            plt.subplots_adjust(wspace = 0.55, bottom = 0.3)
+            plt.savefig(data_dir + list_of_datasets[j] + '_' + site + '_comp_cdf.png', dpi = 400)
+    
+def plot_fig1(data_dir = "./data/"):
+    """Illustration of the 4 patterns using BCI data."""
+    fig = plt.figure(figsize = (7, 7))
+    # Subplot A: Observed and predicted RAD
+    # Code adopted and modified from example_sad_plot in mete_sads
+    obs_pred_data = import_obs_pred_data('./data/'+ 'BCI' + '_obs_pred.csv')    
+    obs = obs_pred_data["obs"]   
+    pred = obs_pred_data["pred"]
+    rank_obs, relab_obs = macroecotools.get_rad_data(obs)
+    rank_pred, relab_pred = macroecotools.get_rad_data(pred)
+    plot_obj = plt.subplot(2, 2, 1)
+    plot_obj.semilogy(rank_obs, relab_obs, 'o', markerfacecolor='none', markersize=6, 
+             markeredgecolor='#999999', markeredgewidth=1)
+    plot_obj.semilogy(rank_pred, relab_pred, '-', color='#9400D3', linewidth=2)
+    plt.xlabel('Rank', fontsize = '14')
+    plt.ylabel('Relative Abundance', fontsize = '14')
+    # Subplot B: ISD shown as histogram with predicted pdf
+    # Code adopted and modified from plot_ind_hist from fit_other_dist
+    dat = import_raw_data('bci7.csv')
+    dbh_raw = dat[dat.dtype.names[2]]
+    dbh_scale = np.array(dbh_raw / min(dbh_raw))
+    dbh2_scale = dbh_scale ** 2
+    E0 = sum(dbh2_scale)
+    N0 = len(dbh2_scale)
+    S0 = len(set(dat[dat.dtype.names[1]]))
+    
+    num_bin = int(ceil(log(max(dbh_scale)) / log(2)))
+    emp_pdf = []
+    for i in range(num_bin):
+        count = len(dbh_scale[(dbh_scale < 2 ** (i + 1)) & (dbh_scale >= 2 ** i)])
+        emp_pdf.append(count / N0 / 2 ** i)
+    psi = psi_epsilon(S0, N0, E0)
+    psi_pdf = []
+    x_array = np.arange(1, ceil(max(dbh_scale)) + 1)
+    for x in x_array:
+        psi_pdf.append(float(ysquareroot_pdf(x, psi)))
+    plot_obj = plt.subplot(2, 2, 2)
+    plot_obj.loglog(x_array, psi_pdf, '#9400D3', linewidth = 2, label = 'METE')
+    plot_obj.bar(2 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
+            width = 0.4 * 2 ** np.array(range(num_bin)))
+    plt.xlabel('DBH')
+    plt.ylabel('Probability Density')
+    # Subplot C: Size-abundance distribution, shown as DBH^2 against abundance
+    # Code adopted and modified from plot_species_avg_single
+    theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+    spp_list = set(dat[dat.dtype.names[1]])
+    
+    dbh2_obs = []
+    n_obs = []
+    for spp in set(spp_list):
+        dat_spp = sorted(dbh2_scale[dat[dat.dtype.names[1]] == spp])
+        n_obs.append(len(dat_spp))
+        dbh2_obs.append(sum(dat_spp) / len(dat_spp))
+    n_list = sorted(list(set([int(x) for x in np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))])))
+    dbh2_pred = []
+    for n in n_list:
+        dbh2_pred.append(theta_epsilon_obj.E(n))
+    plot_obj = plt.subplot(2, 2, 3)
+    plot_obj.loglog(np.array(dbh2_pred), np.array(n_list), color = '#9400D3', linewidth = 2)
+    plot_obj.scatter(dbh2_obs, n_obs, color = '#999999', marker = 'o')
+    plt.xlabel(r'Species Level Average $DBH^2$')
+    plt.ylabel('Species Abundance')
+    # Subplot D: Intra-specific distribution for the most abundant species (Hybanthus prunifolius)
+    hp_dbh2 = dbh2_scale[dat[dat.dtype.names[1]] == 'Hybanthus prunifolius']
+    hp_num_bin = int(ceil(log(max(hp_dbh2)) / log(2)))
+    hp_emp_pdf = []
+    for i in range(hp_num_bin):
+        count = len(hp_dbh2[(hp_dbh2 < 2 ** (i + 1)) & (hp_dbh2 >= 2 ** i)])
+        hp_emp_pdf.append(count / len(hp_dbh2) / 2 ** i)
+    def exp_dist(x, lam):
+        return lam * np.exp(-lam * x)
+    lam_pred = psi.lambda2 * len(hp_dbh2)
+    lam_est = 1 / (sum(hp_dbh2) / len(hp_dbh2) - 1)
+    x_array = np.arange(1, ceil(max(hp_dbh2)) + 1)
+    plot_obj = plt.subplot(2, 2, 4)
+    plot_obj.loglog(x_array, exp_dist(x_array, lam_pred), '#9400D3', linewidth = 2, label = 'METE')
+    plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
+    plot_obj.bar(2 ** np.array(range(hp_num_bin)), hp_emp_pdf, color = '#d6d6d6', 
+        width = 0.4 * 2 ** np.array(range(hp_num_bin)))
+    plt.xlabel(r'$DBH^2$')
+    plt.ylabel('Probability Density')
+    plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
+    plt.savefig(data_dir + 'fig1.png', dpi = 400)
 
 def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
     """Plot the observed vs predicted species-level average metabolic rate 
