@@ -116,6 +116,17 @@ def get_mete_pred_cdf(dbh2_scale, S0, N0, E0):
         pred_cdf.append(psi.cdf(dbh2))
     return np.array(pred_cdf)
 
+def get_mete_pred_dbh2(dbh2_scale, S0, N0, E0):
+    """Compute the individual metabolic rate (size) predicted by METE 
+    
+    for each individual given S0, N0, E0, and scaled dbh**2.
+    
+    """
+    psi = psi_epsilon(S0, N0, E0)
+    scaled_rank = [(x + 0.5) / len(dbh2_scale) for x in range(len(dbh2_scale))]
+    pred_dbh2 = [psi.ppf(x) for x in scaled_rank]
+    return np.array(pred_dbh2)
+
 def get_obs_cdf(dat):
     """Compute the empirical cdf given a list or an array"""
     dat = np.array(dat)
@@ -157,6 +168,38 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             f1.writerows(results)
     f1_write.close()
     
+def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+    """Use data to compare the predicted and empirical dbh**2 of and 
+    
+    get results in csv files.
+    Keyword arguments:
+    raw_data : numpy structured array with 3 columns: 'site','sp','dbh'
+    dataset_name : short code that will indicate the name of the dataset in
+                    the output file names
+    data_dir : directory in which to store output
+    cutoff : minimum number of species required to run - 1.
+    
+    """
+    usites = np.sort(list(set(raw_data["site"])))
+    f1_write = open(data_dir + dataset_name + '_obs_pred_isd_dbh2.csv', 'wb')
+    f1 = csv.writer(f1_write)
+    
+    for site in usites:
+        subdat = raw_data[raw_data["site"] == site]
+        dbh_raw = subdat[subdat.dtype.names[2]]
+        dbh_scale = np.array(dbh_raw / min(dbh_raw))
+        dbh2_scale = dbh_scale ** 2
+        E0 = sum(dbh2_scale)
+        N0 = len(dbh2_scale)
+        S0 = len(set(subdat[subdat.dtype.names[1]]))
+        if S0 > cutoff:
+            dbh2_pred = get_mete_pred_dbh2(dbh2_scale, S0, N0, E0)
+            dbh2_obs = sorted(dbh2_scale)
+            #save results to a csv file:
+            results = ((np.column_stack((np.array([site] * len(cdf_obs)), cdf_obs, cdf_pred))))
+            f1.writerows(results)
+    f1_write.close()
+
 def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9, n_cutoff = 4):
     """Compare the predicted and empirical average dbh^2 as well as compute the scaled 
     
@@ -237,6 +280,14 @@ def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
     fig.text(0.04, 0.5, 'Observed Abundance', ha = 'center', va = 'center', 
              rotation = 'vertical')
     plt.savefig('obs_pred_sad.png', dpi = 400)
+
+def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2):
+    """Plot the observed vs predicted dbh2 for each individual for multiple datasets."""
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_isd_dbh2.csv')
+    fig.text(0.5, 0.04, r'Predicted $DBH^2$', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, r'Observed $DBH^2$', ha = 'center', va = 'center', 
+             rotation = 'vertical')
+    plt.savefig('obs_pred_dbh2.png', dpi = 400)
 
 def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     """Plot the observed vs predicted cdf for multiple datasets."""
