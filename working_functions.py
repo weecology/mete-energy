@@ -196,7 +196,7 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             dbh2_pred = get_mete_pred_dbh2(dbh2_scale, S0, N0, E0)
             dbh2_obs = sorted(dbh2_scale)
             #save results to a csv file:
-            results = ((np.column_stack((np.array([site] * len(cdf_obs)), cdf_obs, cdf_pred))))
+            results = ((np.column_stack((np.array([site] * len(dbh2_obs)), dbh2_obs, dbh2_pred))))
             f1.writerows(results)
     f1_write.close()
 
