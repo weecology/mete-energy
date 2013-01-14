@@ -2,6 +2,7 @@ from __future__ import division
 import numpy as np
 from scipy.optimize import bisect
 from scipy.stats.distributions import uniform
+from scipy.stats import rv_continuous
 from math import exp
 from mete import *
 import sys
@@ -52,11 +53,9 @@ class theta_epsilon:
         return out
         
     def E(self, n):
-        """Expected value of the distribution"""
         def mom_1(x):
             return x * self.pdf(x, n)
         return float(mpmath.quad(mom_1, [self.a, self.b]))
-
 
 class theta_m_no_error_gen(rv_continuous):
     """Intraspecific mass distribution when constraint is E0.

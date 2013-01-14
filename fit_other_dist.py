@@ -16,6 +16,11 @@ def xsquare_pdf(x, dist, *pars):
     x = np.array(x)
     return 1 / x ** 0.5 * dist.pdf(x ** 0.5, *pars) / 2 
 
+def ysquareroot_pdf(y, dist, *pars):
+    """Calculates the pdf for y, given the distribution of variable X = Y^2 and a given value y."""
+    y = np.array(y)
+    return 2 * dist.pdf(y ** 2, *pars) * y
+
 def xsquare_ppf(q, dist, *pars):
     """Calculate the ppf for x, given the distribution of variable Y = sqrt(X) 
     
@@ -105,26 +110,37 @@ def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, plo
     N0 = len(dbh2_scale)
     S0 = len(set(dat[dat.dtype.names[1]]))
 
-    num_bin = int(ceil(log(max(dbh2_scale)) / log(2))) #Set up log(2) 
+    #num_bin = int(ceil(log(max(dbh2_scale)) / log(2))) #Set up log(2) 
+    num_bin = int(ceil(log(max(dbh_scale)) / log(2)))
     emp_pdf = []
     for i in range(num_bin):
-        count = len(dbh2_scale[(dbh2_scale < 2 ** (i + 1)) & (dbh2_scale >= 2 ** i)])
+        #count = len(dbh2_scale[(dbh2_scale < 2 ** (i + 1)) & (dbh2_scale >= 2 ** i)])
+        count = len(dbh_scale[(dbh_scale < 2 ** (i + 1)) & (dbh_scale >= 2 ** i)])
         emp_pdf.append(count / N0 / 2 ** i)
     psi = psi_epsilon(S0, N0, E0)
     psi_pdf = []
-    x_array = np.arange(1, ceil(max(dbh2_scale)) + 1)
+    #x_array = np.arange(1, ceil(max(dbh2_scale)) + 1)
+    x_array = np.arange(1, ceil(max(dbh_scale)) + 1)
     for x in x_array:
-        psi_pdf.append(psi.pdf(x))
+        #psi_pdf.append(psi.pdf(x))
+        psi_pdf.append(float(ysquareroot_pdf(x, psi)))
     
     if plot_obj == None:
         plot_obj = plt.figure()
-    plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_expon, expon_par, 1), '#FF4040', 
+    #plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_expon, expon_par, 1), '#FF4040', 
+                    #linewidth = 2, label = 'Truncated exponential')
+    #plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_pareto, pareto_par, 1), '#00BFFF', 
+                    #linewidth = 2, label = 'Truncated Pareto')
+    #plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_weibull, weibull_k, weibull_lmd, 1), 
+                    #'#000000', linewidth = 3, label = 'Truncated Weibull')
+    plot_obj.loglog(x_array, trunc_expon.pdf(x_array, expon_par, 1), '#FF4040', 
                     linewidth = 2, label = 'Truncated exponential')
-    plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_pareto, pareto_par, 1), '#00BFFF', 
-                    linewidth = 2, label = 'Truncated Pareto')
-    plot_obj.loglog(x_array, xsquare_pdf(x_array, trunc_weibull, weibull_k, weibull_lmd, 1), 
-                    '#000000', linewidth = 3, label = 'Truncated Weibull')
+    plot_obj.loglog(x_array, trunc_pareto.pdf(x_array, pareto_par, 1), '#00BFFF', 
+                linewidth = 2, label = 'Truncated Pareto')
+    plot_obj.loglog(x_array, trunc_weibull.pdf(x_array, weibull_k, weibull_lmd, 1), '#000000', 
+                linewidth = 2, label = 'Truncated Weibull')    
     plot_obj.loglog(x_array, psi_pdf, '#9400D3', linewidth = 2, label = 'METE')
+
     if legend:
         plot_obj.legend(loc = 1, prop = {'size': 8})
     plot_obj.bar(2 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
