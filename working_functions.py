@@ -64,7 +64,10 @@ def run_test(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
             pred = np.array(mete_pred[0])
             obsab = np.sort(subab)[::-1]
             #save results to a csv file:
-            results = ((np.column_stack((np.array([usites[i]] * len(obsab)), obsab, pred))))
+            results = np.zeros((len(obsab), ), dtype = ('S10, i8, i8'))
+            results['f0'] = np.array([usites[i]] * len(obsab))
+            results['f1'] = obsab
+            results['f2'] = pred
             f1.writerows(results)
     f1_write.close()
 
@@ -169,7 +172,7 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
     f1_write.close()
     
 def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
-    """Use data to compare the predicted and empirical dbh**2 of and 
+    """Use data to compare the predicted and empirical dbh**2 of individuals and 
     
     get results in csv files.
     Keyword arguments:
@@ -199,6 +202,50 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             results = ((np.column_stack((np.array([site] * len(dbh2_obs)), dbh2_obs, dbh2_pred))))
             f1.writerows(results)
     f1_write.close()
+
+def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+    """Use data to compare the predicted and empirical frequency for each size bins
+    
+    and store results in csv files.
+    Keyword arguments:
+    raw_data : numpy structured array with 3 columns: 'site','sp','dbh'
+    dataset_name : short code that will indicate the name of the dataset in
+                    the output file names
+    data_dir : directory in which to store output
+    cutoff : minimum number of species required to run - 1.
+    
+    """
+    usites = np.sort(list(set(raw_data["site"])))
+    f = open(data_dir + dataset_name + '_obs_pred_freq.csv', 'wb')
+    f_writer = csv.writer(f)
+    
+    for site in usites:
+        subdat = raw_data[raw_data["site"] == site]
+        dbh_raw = subdat[subdat.dtype.names[2]]
+        dbh_scale = np.array(sorted(dbh_raw) / min(dbh_raw))
+        dbh2_scale = dbh_scale ** 2
+        E0 = sum(dbh2_scale)
+        N0 = len(dbh2_scale)
+        S0 = len(set(subdat[subdat.dtype.names[1]]))
+        if S0 > cutoff:
+            psi = psi_epsilon(S0, N0, E0)
+            # Plot histogram with pdf
+            num_bin = int(ceil(log(max(dbh_scale)) / log(2)))
+            freq_obs = []
+            freq_pred = []
+            for i in range(num_bin):
+                count = len(dbh_scale[(dbh_scale < 2 ** (i + 1)) & (dbh_scale >= 2 ** i)])
+                freq_obs.append(count / N0 / 2 ** i)
+                freq_pred.append((psi.cdf((2 ** (i + 1)) ** 2) - 
+                                  psi.cdf((2 ** i) ** 2))/ 2 ** i)
+            #save results to a csv file:
+            #results = ((np.column_stack((np.array([site] * len(freq_obs)), freq_obs, freq_pred))))
+            results = np.zeros((len(freq_obs), ), dtype = ('S10, f8, f8'))
+            results['f0'] = np.array([site] * len(freq_obs))
+            results['f1'] = freq_obs
+            results['f2'] = freq_pred
+            f_writer.writerows(results)
+    f.close()
 
 def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9, n_cutoff = 4):
     """Compare the predicted and empirical average dbh^2 as well as compute the scaled 
@@ -243,11 +290,16 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
                     scaled_par_list.append(scaled_par)
                     mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
             #save results to a csv file:
-            results1 = ((np.column_stack((np.array([site] * len(abd)), np.array(mr_avg_obs), 
-                                          np.array(mr_avg_pred)))))
+            results1 = np.zeros((len(abd), ), dtype = ('S10, f8, f8'))
+            results1['f0'] = np.array([site] * len(abd))
+            results1['f1'] = np.array(mr_avg_obs)
+            results1['f2'] = np.array(mr_avg_pred)
             f1.writerows(results1)
-            results2 = ((np.column_stack((np.array([site] * len(abd)), np.array(scaled_par_list), 
-                                          np.array(abd)))))
+            
+            results2 = np.zeros((len(abd), ), dtype = ('S10, f8, i8'))
+            results2['f0'] = np.array([site] * len(abd))
+            results2['f1'] = np.array(scaled_par_list)
+            results2['f2'] = np.array(abd)
             f2.writerows(results2)
     f1_write.close()
     f2_write.close()
@@ -269,8 +321,9 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
-    plt.text(axis_max * 0.8, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), 
-                                                                                            np.array(pred)))
+    plt.annotate(r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
+                 xy = (0.75, 0.05), xycoords = 'axes fraction')
+    #plt.text(0.05 * axis_max, 1.3 * axis_min, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)))
     return fig
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
@@ -296,6 +349,14 @@ def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     fig.text(0.04, 0.5, 'Observed F(x)', ha = 'center', va = 'center', 
              rotation = 'vertical')
     plt.savefig('obs_pred_cdf.png', dpi = 400)
+
+def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05):
+    """Plot the observed vs predicted size frequency for multiple datasets."""
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_freq.csv')
+    fig.text(0.5, 0.04, 'Predicted frequency', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, 'Observed frequency', ha = 'center', va = 'center', 
+             rotation = 'vertical')
+    plt.savefig('obs_pred_freq.png', dpi = 400)
 
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
