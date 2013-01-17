@@ -304,7 +304,7 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
     f1_write.close()
     f2_write.close()
 
-def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, Niter = 200, lumped = True):
+def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, Niter = 200):
     """Randomize species identity within sites and compare the r-square obtained 
     
     for abundance-size distribution and intraspecific energy distribution parameter
@@ -313,38 +313,33 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
     datasets - a list of dataset names
     data_dir - directory for output file
     Niter - number of randomizations applying to each site in each dataset
-    lumped - whether the output r-square will be lumped (one line for all datasets), 
-             or separate into sites (one line for each site in each dataset).
              
     """
-    if lumped:
-        f1_write = open(data_dir + 'mr_rand_lumped.csv', 'wb')
-        f2_write = open(data_dir + 'lambda_rand_lumped.csv', 'wb')
-    else:
-        f1_write = open(data_dir + 'mr_rand_sites.csv', 'wb')
-        f2_write = open(data_dir + 'lambda_rand_sites.csv', 'wb')
+    f1_write = open(data_dir + 'mr_rand_sites.csv', 'wb')
+    f2_write = open(data_dir + 'lambda_rand_sites.csv', 'wb')
     f1 = csv.writer(f1_write)
     f2 = csv.writer(f2_write)
     
-    if not lumped:
-        for dataset in datasets:
-            raw_data = import_raw_data(dataset + '.csv')
-            usites = np.sort(list(set(raw_data['site'])))
-            for site in usites:
-                subdat = raw_data[raw_data['site'] == site]
-                dbh_raw = subdat[subdat.dtype.names[2]]
-                dbh_scale = np.array(dbh_raw / min(dbh_raw))
-                dbh2_scale = dbh_scale ** 2
-                E0 = sum(dbh2_scale)
-                N0 = len(dbh2_scale)
-                S_list = set(subdat[subdat.dtype.names[1]])
-                S0 = len(S_list)
-                if S0 > cutoff: 
-                    mr_out_row = [dataset + '_' + site]
-                    lambda_out_row = [dataset + '_' + site]
-                    psi = psi_epsilon(S0, N0, E0)
-                    theta_epsilon_obj = theta_epsilon(S0, N0, E0)
-                    # Compute the two r2 for original data 
+    for dataset in datasets:
+        raw_data = import_raw_data(dataset + '.csv')
+        usites = np.sort(list(set(raw_data['site'])))
+        for site in usites:
+            subdat = raw_data[raw_data['site'] == site]
+            dbh_raw = subdat[subdat.dtype.names[2]]
+            dbh_scale = np.array(dbh_raw / min(dbh_raw))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            N0 = len(dbh2_scale)
+            S_list = set(subdat[subdat.dtype.names[1]])
+            S0 = len(S_list)
+            if S0 > cutoff: 
+                mr_out_row = [dataset + '_' + site]
+                lambda_out_row = [dataset + '_' + site]
+                psi = psi_epsilon(S0, N0, E0)
+                theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+                for i in range(Niter + 1):
+                    if i != 0: #Shuffle species label except for the first time
+                        np.random.shuffle(subdat[subdat.dtype.names[1]]) 
                     abd = []
                     mr_avg_obs = []
                     scaled_par_list = []
@@ -361,28 +356,10 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
                                                                      np.array(mr_avg_pred)))
                     lambda_out_row.append(macroecotools.obs_pred_rsquare(np.array(abd), 
                                                                          np.array(scaled_par_list)))
-                    # Iteration of randomization
-                    for i in np.arange(Niter):
-                        np.random.shuffle(subdat[subdat.dtype.names[1]])
-                        abd = []
-                        mr_avg_obs = []
-                        scaled_par_list = []
-                        mr_avg_pred = []
-                        for sp in S_list:
-                            sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
-                            if len(sp_dbh2) > n_cutoff: 
-                                abd.append(len(sp_dbh2))
-                                mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
-                                scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
-                                scaled_par_list.append(scaled_par)
-                                mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
-                        mr_out_row.append(macroecotools.obs_pred_rsquare(np.array(mr_avg_obs), 
-                                                                                 np.array(mr_avg_pred)))
-                        lambda_out_row.append(macroecotools.obs_pred_rsquare(np.array(abd), 
-                                                                             np.array(scaled_par_list)))
 
-                    f1.writerow(mr_out_row)
-                    f2.writerow(lambda_out_row)
+                f1.writerow(mr_out_row)
+                f2.writerow(lambda_out_row)
+                
     f1_write.close()
     f2_write.close()
 
