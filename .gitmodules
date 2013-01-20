@@ -1,0 +1,3 @@
+[submodule "cleaned_data_files"]
+	path = cleaned_data_files
+	url = git@github.com:weecology/mete-energy-data.git
