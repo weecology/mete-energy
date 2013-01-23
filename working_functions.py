@@ -352,9 +352,9 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
                             scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
                             scaled_par_list.append(scaled_par)
                             mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
-                    mr_out_row.append(macroecotools.obs_pred_rsquare(np.array(mr_avg_obs), 
+                    mr_out_row.append(macroecotools.obs_pred_mse(np.array(mr_avg_obs), 
                                                                      np.array(mr_avg_pred)))
-                    lambda_out_row.append(macroecotools.obs_pred_rsquare(np.array(abd), 
+                    lambda_out_row.append(macroecotools.obs_pred_mse(np.array(abd), 
                                                                          np.array(scaled_par_list)))
 
                 f1.writerow(mr_out_row)
@@ -363,9 +363,76 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
     f1_write.close()
     f2_write.close()
 
-def plot_obs_pred(datasets, data_dir, radius, loglog, filename):
+def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
+    """Plot predicted-observed MR relationship and abd-scaled parameter relationship,
+    
+    with expected results from randomization.
+    
+    """
+    for dataset in datasets:
+        raw_data = import_raw_data(dataset + '.csv')
+        usites = np.sort(list(set(raw_data['site'])))
+        for site in usites:
+            subdat = raw_data[raw_data['site'] == site]
+            dbh_raw = subdat[subdat.dtype.names[2]]
+            dbh_scale = np.array(dbh_raw / min(dbh_raw))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            N0 = len(dbh2_scale)
+            S_list = set(subdat[subdat.dtype.names[1]])
+            S0 = len(S_list)
+            if S0 > cutoff: 
+                mr_out_row = [dataset + '_' + site]
+                lambda_out_row = [dataset + '_' + site]
+                psi = psi_epsilon(S0, N0, E0)
+                theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+                abd = []
+                mr_avg_obs = []
+                scaled_par_list = []
+                mr_avg_pred = []
+                for sp in S_list:
+                    sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
+                    if len(sp_dbh2) > n_cutoff: 
+                        abd.append(len(sp_dbh2))
+                        mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
+                        scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
+                        scaled_par_list.append(scaled_par)
+                        mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
+                fig = plt.figure()
+                plot_obj = fig.add_subplot(121)
+                plot_obj.scatter(abd, mr_avg_pred, color = '#9400D3')
+                plot_obj.scatter(abd, mr_avg_obs, color = 'red')
+                plot_obj.scatter(abd, np.array([E0 / N0] * len(abd)), color = 'black')
+                plot_obj.set_xscale('log')
+                plot_obj.set_yscale('log')
+                plt.xlabel('Species Abundance')
+                plt.ylabel('Average MR')
+                plt.annotate(r'MSE = %0.2f' %macroecotools.obs_pred_mse(np.array(mr_avg_obs), np.array(mr_avg_pred)),
+                             xy = (0.6, 0.1), xycoords = 'axes fraction', color = 'red')
+                plt.annotate(r'MSE = %0.2f' %macroecotools.obs_pred_mse(np.array([E0 / N0] * len(abd)), np.array(mr_avg_pred)),
+                             xy = (0.6, 0.05), xycoords = 'axes fraction', color = 'black')
+
+                plot_obj = fig.add_subplot(122)
+                plot_obj.scatter(abd, abd, color = '#9400D3')
+                plot_obj.scatter(abd, scaled_par_list, color = 'red')
+                plot_obj.scatter(abd, np.array([1 / (E0 / N0 - 1) / psi.lambda2] * len(abd)), color = 'black')
+                plt.xlabel('Species Abundance')
+                plt.ylabel('Scaled Intraspecific Parameter')
+                plot_obj.set_xscale('log')
+                plot_obj.set_yscale('log')
+                plt.subplots_adjust(wspace = 0.55)
+                plt.annotate(r'MSE = %0.2f' %macroecotools.obs_pred_mse(np.array(scaled_par_list), np.array(abd)),
+                             xy = (0.6, 0.1), xycoords = 'axes fraction', color = 'red')
+                plt.annotate(r'MSE = %0.2f' %macroecotools.obs_pred_mse(np.array([1 / (E0 / N0 - 1) / psi.lambda2] * len(abd)), np.array(abd)),
+                             xy = (0.6, 0.05), xycoords = 'axes fraction', color = 'black')
+
+                plt.savefig(data_dir + dataset + '_' + site + '_rand_exp.png', dpi = 400)
+                plt.close()
+
+def plot_obs_pred(datasets, data_dir, radius, loglog, fig = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
-    fig = plt.figure(figsize = (7, 7))
+    if not fig:
+        fig = plt.figure(figsize = (7, 7))
     num_datasets = len(datasets)
     obs = []
     pred = []
@@ -416,6 +483,27 @@ def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05):
     fig.text(0.04, 0.5, 'Observed frequency', ha = 'center', va = 'center', 
              rotation = 'vertical')
     plt.savefig('obs_pred_freq.png', dpi = 400)
+
+def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
+    """Plot the observed vs predicted species-level average metabolic rate 
+    
+    for all species across multiple datasets.
+    
+    """
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_avg_mr.csv')
+    fig.text(0.5, 0.04, 'Predicted Species-Average Metabolic Rate', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, 'Observed Species-Average Metabolic Rate', ha = 'center', va = 'center', 
+             rotation = 'vertical')
+    plt.savefig('obs_pred_average_mr.png', dpi = 400)
+
+def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
+    """Plot the scaled intra-specific energy distribution parameter against abundance."""
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_scaled_par.csv')
+    fig.text(0.5, 0.04, 'Abundance', ha = 'center', va = 'center')
+    fig.text(0.04, 0.5, r'Scaled $\lambda$ for Within Species Distribution', ha = 'center', 
+             va = 'center', rotation = 'vertical')
+    plt.savefig('intra_scaled_par.png', dpi = 400)
+
 
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
@@ -560,26 +648,6 @@ def plot_fig1(data_dir = "./data/"):
     plt.ylabel('Probability Density')
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
     plt.savefig(data_dir + 'fig1.png', dpi = 400)
-
-def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
-    """Plot the observed vs predicted species-level average metabolic rate 
-    
-    for all species across multiple datasets.
-    
-    """
-    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_avg_mr.csv')
-    fig.text(0.5, 0.04, 'Predicted Species-Average Metabolic Rate', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, 'Observed Species-Average Metabolic Rate', ha = 'center', va = 'center', 
-             rotation = 'vertical')
-    plt.savefig('obs_pred_average_mr.png', dpi = 400)
-
-def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
-    """Plot the scaled intra-specific energy distribution parameter against abundance."""
-    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_scaled_par.csv')
-    fig.text(0.5, 0.04, 'Abundance', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, r'Scaled $\lambda$ for Within Species Distribution', ha = 'center', 
-             va = 'center', rotation = 'vertical')
-    plt.savefig('intra_scaled_par.png', dpi = 400)
 
 def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
     """Create a csv file with AICc weights of the four distributions"""
