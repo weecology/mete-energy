@@ -429,7 +429,7 @@ def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
                 plt.savefig(data_dir + dataset + '_' + site + '_rand_exp.png', dpi = 400)
                 plt.close()
 
-def plot_obs_pred(datasets, data_dir, radius, loglog, fig = None):
+def plot_obs_pred(datasets, data_dir, radius, loglog, filename, fig = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
     if not fig:
         fig = plt.figure(figsize = (7, 7))
@@ -443,7 +443,7 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, fig = None):
 
     axis_min = 0.9 * min(obs+pred)
     axis_max = 1.1 * max(obs+pred)
-    macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog)      
+    macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog, plot_obj = fig)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
@@ -504,6 +504,37 @@ def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
              va = 'center', rotation = 'vertical')
     plt.savefig('intra_scaled_par.png', dpi = 400)
 
+def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_dbh2 = 2, 
+                       radius_mr = 2, radius_scaled_par = 2):
+    """Plot predicted versus observed data for 4 patterns (SAD, ISD, abundance-MR relationship, 
+    
+    scaled parameter for intraspecific MR distribution) as subplots in a single figure.
+    
+    """
+    fig = plt.figure(figsize = (14, 14))
+    
+    ax = plt.subplot(221)
+    fig1 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred.csv', fig = ax)
+    fig1.set_xlabel('Predicted abundance')
+    fig1.set_ylabel('Observed abundance')
+
+    ax = plt.subplot(222)
+    fig2 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred_freq.csv', fig = ax)
+    fig2.set_xlabel('Predicted frequency')
+    fig2.set_ylabel('Observed frequency')
+
+    ax = plt.subplot(223)
+    fig3 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred_avg_mr.csv', fig = ax)
+    fig3.set_xlabel('Predicted Species-Average Metabolic Rate')
+    fig3.set_ylabel('Observed Species-Average Metabolic Rate')
+
+    ax = plt.subplot(224)
+    fig4 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_scaled_par.csv', fig = ax)
+    fig4.set_xlabel('Abundance')
+    fig4.set_ylabel(r'Scaled $\lambda$ for Within Species Distribution')
+
+    plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
+    plt.savefig('four_patterns.png', dpi = 400)    
 
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
