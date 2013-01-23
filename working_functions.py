@@ -504,7 +504,7 @@ def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
              va = 'center', rotation = 'vertical')
     plt.savefig('intra_scaled_par.png', dpi = 400)
 
-def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_dbh2 = 2, 
+def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_freq = 0.05, 
                        radius_mr = 2, radius_scaled_par = 2):
     """Plot predicted versus observed data for 4 patterns (SAD, ISD, abundance-MR relationship, 
     
@@ -519,17 +519,17 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_db
     fig1.set_ylabel('Observed abundance')
 
     ax = plt.subplot(222)
-    fig2 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred_freq.csv', fig = ax)
+    fig2 = plot_obs_pred(datasets, data_dir, radius_freq, 1, '_obs_pred_freq.csv', fig = ax)
     fig2.set_xlabel('Predicted frequency')
     fig2.set_ylabel('Observed frequency')
 
     ax = plt.subplot(223)
-    fig3 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred_avg_mr.csv', fig = ax)
+    fig3 = plot_obs_pred(datasets, data_dir, radius_mr, 1, '_obs_pred_avg_mr.csv', fig = ax)
     fig3.set_xlabel('Predicted Species-Average Metabolic Rate')
     fig3.set_ylabel('Observed Species-Average Metabolic Rate')
 
     ax = plt.subplot(224)
-    fig4 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_scaled_par.csv', fig = ax)
+    fig4 = plot_obs_pred(datasets, data_dir, radius_scaled_par, 1, '_scaled_par.csv', fig = ax)
     fig4.set_xlabel('Abundance')
     fig4.set_ylabel(r'Scaled $\lambda$ for Within Species Distribution')
 
