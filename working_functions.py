@@ -262,7 +262,8 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
     usites = np.sort(list(set(raw_data["site"])))
     f1_write = open(data_dir + dataset_name + '_obs_pred_avg_mr.csv', 'wb')
     f1 = csv.writer(f1_write)
-    f2_write = open(data_dir + dataset_name + '_scaled_par.csv', 'wb')
+    #f2_write = open(data_dir + dataset_name + '_scaled_par.csv', 'wb')
+    f2_write = open(data_dir + dataset_name + '_par.csv', 'wb')
     f2 = csv.writer(f2_write)
     
     for site in usites:
@@ -278,16 +279,19 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             mr_avg_pred = []
             mr_avg_obs = []
             abd = []
-            scaled_par_list = []
+            #scaled_par_list = []
+            par_list = []
             psi = psi_epsilon(S0, N0, E0)
             theta_epsilon_obj = theta_epsilon(S0, N0, E0)
             for sp in S_list:
                 sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
                 if len(sp_dbh2) > n_cutoff: 
-                    abd.append(len(sp_dbh2))
+                    #abd.append(len(sp_dbh2))
+                    abd.append(len(sp_dbh2) * psi.lambda2)
                     mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
-                    scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
-                    scaled_par_list.append(scaled_par)
+                    #scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
+                    #scaled_par_list.append(scaled_par)
+                    par_list.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)) 
                     mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
             #save results to a csv file:
             results1 = np.zeros((len(abd), ), dtype = ('S10, f8, f8'))
@@ -296,9 +300,10 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             results1['f2'] = np.array(mr_avg_pred)
             f1.writerows(results1)
             
-            results2 = np.zeros((len(abd), ), dtype = ('S10, f8, i8'))
+            results2 = np.zeros((len(abd), ), dtype = ('S10, f8, f8'))
             results2['f0'] = np.array([site] * len(abd))
-            results2['f1'] = np.array(scaled_par_list)
+            #results2['f1'] = np.array(scaled_par_list)
+            results2['f1'] = np.array(par_list)
             results2['f2'] = np.array(abd)
             f2.writerows(results2)
     f1_write.close()
@@ -429,10 +434,12 @@ def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
                 plt.savefig(data_dir + dataset + '_' + site + '_rand_exp.png', dpi = 400)
                 plt.close()
 
-def plot_obs_pred(datasets, data_dir, radius, loglog, filename, fig = None):
+def plot_obs_pred(datasets, data_dir, radius, loglog, filename, ax = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
-    if not fig:
+    if not ax:
         fig = plt.figure(figsize = (7, 7))
+        ax = plt.subplot(111)
+
     num_datasets = len(datasets)
     obs = []
     pred = []
@@ -443,45 +450,41 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename, fig = None):
 
     axis_min = 0.9 * min(obs+pred)
     axis_max = 1.1 * max(obs+pred)
-    macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog, plot_obj = fig)      
+    macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog, plot_obj = ax)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
     plt.annotate(r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
                  xy = (0.75, 0.05), xycoords = 'axes fraction')
     #plt.text(0.05 * axis_max, 1.3 * axis_min, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)))
-    return fig
+    return ax
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
     fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred.csv')
-    fig.text(0.5, 0.04, 'Predicted Abundance', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, 'Observed Abundance', ha = 'center', va = 'center', 
-             rotation = 'vertical')
+    fig.set_xlabel('Predicted Abundance', labelpad = 10, size = 12)
+    fig.set_ylabel('Observed Abundance', labelpad = 10, size = 12)
     plt.savefig('obs_pred_sad.png', dpi = 400)
 
 def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2):
     """Plot the observed vs predicted dbh2 for each individual for multiple datasets."""
     fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_isd_dbh2.csv')
-    fig.text(0.5, 0.04, r'Predicted $DBH^2$', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, r'Observed $DBH^2$', ha = 'center', va = 'center', 
-             rotation = 'vertical')
+    fig.set_xlabel(r'Predicted $DBH^2$', labelpad = 10, size = 12)
+    fig.set_ylabel(r'Observed $DBH^2$', labelpad = 10, size = 12)
     plt.savefig('obs_pred_dbh2.png', dpi = 400)
 
 def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     """Plot the observed vs predicted cdf for multiple datasets."""
     fig = plot_obs_pred(datasets, data_dir, radius, 0, '_obs_pred_isd_cdf.csv')
-    fig.text(0.5, 0.04, 'Predicted F(x)', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, 'Observed F(x)', ha = 'center', va = 'center', 
-             rotation = 'vertical')
+    fig.set_xlabel('Predicted F(x)', labelpad = 10, size = 12)
+    fig.set_ylabel('Observed F(x)', labelpad = 10, size = 12)
     plt.savefig('obs_pred_cdf.png', dpi = 400)
 
 def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05):
     """Plot the observed vs predicted size frequency for multiple datasets."""
     fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_freq.csv')
-    fig.text(0.5, 0.04, 'Predicted frequency', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, 'Observed frequency', ha = 'center', va = 'center', 
-             rotation = 'vertical')
+    fig.set_xlabel('Predicted frequency', labelpad = 10, size = 12)
+    fig.set_ylabel('Observed frequency', labelpad = 10, size = 12)
     plt.savefig('obs_pred_freq.png', dpi = 400)
 
 def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
@@ -491,18 +494,22 @@ def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
     
     """
     fig = plot_obs_pred(datasets, data_dir, radius, 1, '_obs_pred_avg_mr.csv')
-    fig.text(0.5, 0.04, 'Predicted Species-Average Metabolic Rate', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, 'Observed Species-Average Metabolic Rate', ha = 'center', va = 'center', 
-             rotation = 'vertical')
+    fig.set_xlabel('Predicted Species-Average Metabolic Rate', labelpad = 10, size = 12)
+    fig.set_ylabel('Observed Species-Average Metabolic Rate', labelpad = 10, size = 12)
     plt.savefig('obs_pred_average_mr.png', dpi = 400)
 
 def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
     """Plot the scaled intra-specific energy distribution parameter against abundance."""
-    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_scaled_par.csv')
-    fig.text(0.5, 0.04, 'Abundance', ha = 'center', va = 'center')
-    fig.text(0.04, 0.5, r'Scaled $\lambda$ for Within Species Distribution', ha = 'center', 
-             va = 'center', rotation = 'vertical')
-    plt.savefig('intra_scaled_par.png', dpi = 400)
+    fig = plot_obs_pred(datasets, data_dir, radius, 1, '_par.csv')
+    #fig = plot_obs_pred(datasets, data_dir, radius, 1, '_scaled_par.csv')
+    fig.set_xlabel(r'Predicted $\lambda$', labelpad = 10, size = 12)
+    fig.set_ylabel(r'Observed $\lambda$', labelpad = 10, size = 12)
+
+    #fig.text(0.5, 0.04, 'Abundance', ha = 'center', va = 'center')
+    #fig.text(0.04, 0.5, r'Scaled $\lambda$ for Within Species Distribution', ha = 'center', 
+             #va = 'center', rotation = 'vertical')
+    plt.savefig('intra_par.png', dpi = 400)
+    #plt.savefig('intra_scaled_par.png', dpi = 400)
 
 def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_freq = 0.05, 
                        radius_mr = 2, radius_scaled_par = 2):
@@ -514,27 +521,27 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     fig = plt.figure(figsize = (14, 14))
     
     ax = plt.subplot(221)
-    fig1 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred.csv', fig = ax)
+    fig1 = plot_obs_pred(datasets, data_dir, radius_sad, 1, '_obs_pred.csv', ax = ax)
     fig1.set_xlabel('Predicted abundance', labelpad = 10, size = 18)
     fig1.set_ylabel('Observed abundance', labelpad = 10, size = 18)
     fig1.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
     ax = plt.subplot(222)
-    fig2 = plot_obs_pred(datasets, data_dir, radius_freq, 1, '_obs_pred_freq.csv', fig = ax)
+    fig2 = plot_obs_pred(datasets, data_dir, radius_freq, 1, '_obs_pred_freq.csv', ax = ax)
     fig2.set_xlabel('Predicted frequency', labelpad = 10, size = 18)
     fig2.set_ylabel('Observed frequency', labelpad = 10, size = 18)
     fig2.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
     ax = plt.subplot(223)
-    fig3 = plot_obs_pred(datasets, data_dir, radius_mr, 1, '_obs_pred_avg_mr.csv', fig = ax)
+    fig3 = plot_obs_pred(datasets, data_dir, radius_mr, 1, '_obs_pred_avg_mr.csv', ax = ax)
     fig3.set_xlabel('Predicted Species-Average Metabolic Rate', labelpad = 10, size = 18)
     fig3.set_ylabel('Observed Species-Average Metabolic Rate', labelpad = 10, size = 18)
     fig3.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
     ax = plt.subplot(224)
-    fig4 = plot_obs_pred(datasets, data_dir, radius_scaled_par, 1, '_scaled_par.csv', fig = ax)
-    fig4.set_xlabel('Abundance', labelpad = 10, size = 18)
-    fig4.set_ylabel(r'Scaled $\lambda$ for Within Species Distribution', labelpad = 10, size = 18)
+    fig4 = plot_obs_pred(datasets, data_dir, radius_scaled_par, 1, '_par.csv', ax = ax)
+    fig4.set_xlabel(r'Predicted $\lambda$', labelpad = 10, size = 18)
+    fig4.set_ylabel(r'Observed $\lambda$', labelpad = 10, size = 18)
     fig4.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
