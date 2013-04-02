@@ -11,7 +11,6 @@ from mpl_toolkits.axes_grid.inset_locator import inset_axes
 from mete import *
 import macroecotools
 from fit_other_dist import *
-from EM_dist import *
 from math import exp
 
 def import_raw_data(input_filename):
