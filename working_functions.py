@@ -12,6 +12,7 @@ from mete import *
 import macroecotools
 from fit_other_dist import *
 from math import exp
+from scipy.stats.mstats import mquantiles
 
 def import_raw_data(input_filename):
     data = np.genfromtxt(input_filename, dtype = "S15, S25, f8", skiprows = 1, 
@@ -30,11 +31,11 @@ def import_par_table(par_table):
                               names = ['dataset', 'site', 'expon_par', 'pareto_par', 
                                        'weibull_k', 'weibull_lmd'], delimiter = ",")
     return par_table
-
-def run_test(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
+            
+def get_obs_pred_rad(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
     """Use data to compare the predicted and empirical SADs and get results in csv files
     
-    (Copied and modified from the funciton of the same name from White et al. 2012)
+    (Copied and modified from the funciton 'run_test' from White et al. 2012)
     Keyword arguments:
     raw_data : numpy structured array with 3 columns: 'site','sp','dbh'
     dataset_name : short code that will indicate the name of the dataset in
@@ -69,42 +70,6 @@ def run_test(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
             results['f2'] = pred
             f1.writerows(results)
     f1_write.close()
-
-#def plot_obs_pred_sad(datasets, data_dir='./data/', radius=2):
-    #"""Multiple obs-predicted plotter
-    
-    #(Copied and modified from White et al. 2012)
-    
-    #"""
-    ## Only for illustration purpose for the poster. 
-    #fig = plt.figure(figsize = (7, 7))
-    #num_datasets = len(datasets)
-    #for i, dataset in enumerate(datasets):
-        #obs_pred_data = import_obs_pred_data(data_dir + dataset + '_obs_pred.csv') 
-        #site = ((obs_pred_data["site"]))
-        #obs = ((obs_pred_data["obs"]))
-        #pred = ((obs_pred_data["pred"]))
-        
-        #axis_min = 0.5 * min(obs)
-        #axis_max = 2 * max(obs)
-        #ax = fig.add_subplot(2,2,i+1)
-        #macroecotools.plot_color_by_pt_dens(pred, obs, radius, loglog=1, 
-                                            #plot_obj=plt.subplot(2,2,i+1))      
-        #plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
-        #plt.xlim(axis_min, axis_max)
-        #plt.ylim(axis_min, axis_max)
-        #plt.subplots_adjust(wspace=0.29, hspace=0.29)  
-        #plt.title(dataset)
-        #plt.text(1, axis_max / 3, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred))
-        ### Create inset for histogram of site level r^2 values
-        ##axins = inset_axes(ax, width="30%", height="30%", loc=4)
-        ##hist_mete_r2(site, np.log10(obs), np.log10(pred))
-        ##plt.setp(axins, xticks=[], yticks=[])
-    
-    #fig.text(0.5, 0.04, 'Predicted Abundance', ha = 'center', va = 'center')
-    #fig.text(0.04, 0.5, 'Observed Abundance', ha = 'center', va = 'center', 
-             #rotation = 'vertical')
-    #plt.savefig('obs_pred_plots.png', dpi=400)
 
 def get_mete_pred_cdf(dbh2_scale, S0, N0, E0):
     """Compute the cdf of the individual metabolic rate (size) distribution
@@ -166,7 +131,10 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             cdf_pred = get_mete_pred_cdf(dbh2_scale, S0, N0, E0)
             cdf_obs = get_obs_cdf(dbh2_scale)
             #save results to a csv file:
-            results = ((np.column_stack((np.array([site] * len(cdf_obs)), cdf_obs, cdf_pred))))
+            results = np.zeros((len(cdf_obs), ), dtype = ('S10, f8, f8'))
+            results['f0'] = np.array([usites[i]] * len(cdf_obs))
+            results['f1'] = cdf_obs
+            results['f2'] = cdf_pred
             f1.writerows(results)
     f1_write.close()
     
@@ -198,7 +166,10 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             dbh2_pred = get_mete_pred_dbh2(dbh2_scale, S0, N0, E0)
             dbh2_obs = sorted(dbh2_scale)
             #save results to a csv file:
-            results = ((np.column_stack((np.array([site] * len(dbh2_obs)), dbh2_obs, dbh2_pred))))
+            results = np.zeros((len(dhb2_obs), ), dtype = ('S10, f8, f8'))
+            results['f0'] = np.array([usites[i]] * len(dbh2_obs))
+            results['f1'] = dbh2_obs
+            results['f2'] = dbh2_pred
             f1.writerows(results)
     f1_write.close()
 
@@ -238,7 +209,6 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', cutoff 
                 freq_pred.append((psi.cdf((2 ** (i + 1)) ** 2) - 
                                   psi.cdf((2 ** i) ** 2))/ 2 ** i)
             #save results to a csv file:
-            #results = ((np.column_stack((np.array([site] * len(freq_obs)), freq_obs, freq_pred))))
             results = np.zeros((len(freq_obs), ), dtype = ('S10, f8, f8'))
             results['f0'] = np.array([site] * len(freq_obs))
             results['f1'] = freq_obs
@@ -261,7 +231,6 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
     usites = np.sort(list(set(raw_data["site"])))
     f1_write = open(data_dir + dataset_name + '_obs_pred_avg_mr.csv', 'wb')
     f1 = csv.writer(f1_write)
-    #f2_write = open(data_dir + dataset_name + '_scaled_par.csv', 'wb')
     f2_write = open(data_dir + dataset_name + '_par.csv', 'wb')
     f2 = csv.writer(f2_write)
     
@@ -277,20 +246,16 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
         if S0 > cutoff:
             mr_avg_pred = []
             mr_avg_obs = []
-            abd = []
-            #scaled_par_list = []
-            par_list = []
+            par_pred = []
+            par_obs = []
             psi = psi_epsilon(S0, N0, E0)
             theta_epsilon_obj = theta_epsilon(S0, N0, E0)
             for sp in S_list:
                 sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
                 if len(sp_dbh2) > n_cutoff: 
-                    #abd.append(len(sp_dbh2))
-                    abd.append(len(sp_dbh2) * psi.lambda2)
+                    par_pred.append(len(sp_dbh2) * psi.lambda2)
                     mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
-                    #scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
-                    #scaled_par_list.append(scaled_par)
-                    par_list.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)) 
+                    par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)) 
                     mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
             #save results to a csv file:
             results1 = np.zeros((len(abd), ), dtype = ('S10, f8, f8'))
@@ -299,11 +264,10 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             results1['f2'] = np.array(mr_avg_pred)
             f1.writerows(results1)
             
-            results2 = np.zeros((len(abd), ), dtype = ('S10, f8, f8'))
-            results2['f0'] = np.array([site] * len(abd))
-            #results2['f1'] = np.array(scaled_par_list)
-            results2['f1'] = np.array(par_list)
-            results2['f2'] = np.array(abd)
+            results2 = np.zeros((len(par_pred), ), dtype = ('S10, f8, f8'))
+            results2['f0'] = np.array([site] * len(par_pred))
+            results2['f1'] = np.array(par_obs)
+            results2['f2'] = np.array(par_pred)
             f2.writerows(results2)
     f1_write.close()
     f2_write.close()
@@ -344,28 +308,41 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
                 for i in range(Niter + 1):
                     if i != 0: #Shuffle species label except for the first time
                         np.random.shuffle(subdat[subdat.dtype.names[1]]) 
-                    abd = []
+                    par_pred = []
                     mr_avg_obs = []
-                    scaled_par_list = []
+                    par_obs = []
                     mr_avg_pred = []
                     for sp in S_list:
                         sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
                         if len(sp_dbh2) > n_cutoff: 
-                            abd.append(len(sp_dbh2))
+                            par_pred.append(len(sp_dbh2) * psi.lambda2)
                             mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
-                            scaled_par = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1) / psi.lambda2
-                            scaled_par_list.append(scaled_par)
+                            par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1))
                             mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
                     mr_out_row.append(macroecotools.obs_pred_mse(np.array(mr_avg_obs), 
                                                                      np.array(mr_avg_pred)))
-                    lambda_out_row.append(macroecotools.obs_pred_mse(np.array(abd), 
-                                                                         np.array(scaled_par_list)))
+                    lambda_out_row.append(macroecotools.obs_pred_mse(np.array(par_obs), 
+                                                                         np.array(par_pred)))
 
                 f1.writerow(mr_out_row)
                 f2.writerow(lambda_out_row)
                 
     f1_write.close()
     f2_write.close()
+    
+def get_quantiles(input_filename, data_dir = './data/'):
+    """Manipulate file obtained from species_rand_test to obtain quantiles for plotting"""
+    emp_list, max_list, min_list = [], [], []
+    with open(data_dir + input_filename, 'rb') as datafile:
+        datareader = csv.reader(datafile, delimiter = ',')
+        for row in datareader:
+            emp_list.append(float(row[1]))
+            float_rand = [float(i) for i in row[2:]]
+            quant = mquantiles(float_rand, prob = [0.025, 0.975])
+            max_list.append(quant[1])
+            min_list.append(quant[0])
+    results = np.array([quant, max_list, min_list])
+    return results
 
 def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
     """Plot predicted-observed MR relationship and abd-scaled parameter relationship,
@@ -432,6 +409,22 @@ def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
 
                 plt.savefig(data_dir + dataset + '_' + site + '_rand_exp.png', dpi = 400)
                 plt.close()
+
+
+def plot_rand_test(data_dir = './data/'):
+    """Plot the results obtained from species_rand_test"""
+    rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
+    rand_lambda = get_quantiles('lambda_rand_site.csv', data_dir = data_dir)
+    fig = plt.figure(figsize = (2, 3.42)) # 8.7cm single column width required by PNAS
+    ax_mr = plt.subplot(121)
+    plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ro-',
+                 np.arange(len(rand_mr[0])), rand_mr[1], 'b--',
+                 np.arange(len(rand_mr[0])), rand_mr[2], 'b--')
+    ax_lambda = plt.subplot(122)
+    plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ro-',
+             np.arange(len(rand_lambda[0])), rand_lambda[1], 'b--',
+             np.arange(len(rand_lambda[0])), rand_lambda[2], 'b--')
+    plt.savefig('rand_test.pdf', dpi = 400)
 
 def plot_obs_pred(datasets, data_dir, radius, loglog, filename, ax = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
