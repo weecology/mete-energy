@@ -341,7 +341,12 @@ def get_quantiles(input_filename, data_dir = './data/'):
             quant = mquantiles(float_rand, prob = [0.025, 0.975])
             max_list.append(quant[1])
             min_list.append(quant[0])
-    results = np.array([quant, max_list, min_list])
+    # Sort emp_list and use the order for the other two lists
+    order = sorted(range(len(emp_list)), key = lambda k: emp_list[k])
+    emp_list = [emp_list[i] for i in order]
+    max_list = [max_list[i] for i in order]
+    min_list = [min_list[i] for i in order]
+    results = np.array([emp_list, max_list, min_list])
     return results
 
 def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
@@ -414,16 +419,31 @@ def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
 def plot_rand_test(data_dir = './data/'):
     """Plot the results obtained from species_rand_test"""
     rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
-    rand_lambda = get_quantiles('lambda_rand_site.csv', data_dir = data_dir)
-    fig = plt.figure(figsize = (2, 3.42)) # 8.7cm single column width required by PNAS
+    rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
+    fig = plt.figure(figsize = (3.42, 2)) # 8.7cm single column width required by PNAS
     ax_mr = plt.subplot(121)
-    plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ro-',
-                 np.arange(len(rand_mr[0])), rand_mr[1], 'b--',
-                 np.arange(len(rand_mr[0])), rand_mr[2], 'b--')
+    plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ko-', markersize = 2)
+    ax_mr.fill_between(np.arange(len(rand_mr[0])), rand_mr[1], rand_mr[2],
+                       color = '#CFCFCF', edgecolor = '#CFCFCF')
+    ax_mr.axes.get_xaxis().set_ticks([])
+    y_ticks_mr = [r'$1.0$', r'$10.0$', r'$10^2$', r'$10^3$', r'$10^4$', r'$10^5$', 
+               r'$10^6$', r'$10^7$', r'$10^8$', r'$10^9$', r'$10^{10}$', r'$10^{11}$']
+    ax_mr.set_yticklabels(y_ticks_mr, fontsize = 4)
+    ax_mr.set_xlabel('Plots', fontsize = 6)
+    ax_mr.set_ylabel('MSE of size-abundance relationship', fontsize = 6)
+    
     ax_lambda = plt.subplot(122)
-    plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ro-',
-             np.arange(len(rand_lambda[0])), rand_lambda[1], 'b--',
-             np.arange(len(rand_lambda[0])), rand_lambda[2], 'b--')
+    plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ko-', markersize = 2)
+    ax_lambda.fill_between(np.arange(len(rand_lambda[0])), rand_lambda[1], rand_lambda[2],
+                       color = '#CFCFCF', edgecolor = '#CFCFCF')
+    ax_lambda.axes.get_xaxis().set_ticks([])
+    y_ticks_lambda = [r'$10^{-8}$', r'$10^{-7}$', r'$10^{-6}$', r'$10^{-5}$', r'$10^{-4}$', 
+                      r'$10^{-3}$', r'$10^{-2}$', r'$0.1$', r'$1.0$', r'$10.0$']
+    ax_lambda.set_yticklabels(y_ticks_lambda, fontsize = 4)
+    ax_lambda.set_xlabel('Plots', fontsize = 6)
+    ax_lambda.set_ylabel('MSE of iISD parameter', fontsize = 6)
+
+    plt.subplots_adjust(wspace = 0.35, left = 0.1, right = 0.95)
     plt.savefig('rand_test.pdf', dpi = 400)
 
 def plot_obs_pred(datasets, data_dir, radius, loglog, filename, ax = None):
