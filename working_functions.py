@@ -7,6 +7,7 @@ import matplotlib
 matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 from mete import *
 import macroecotools
@@ -415,7 +416,6 @@ def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
                 plt.savefig(data_dir + dataset + '_' + site + '_rand_exp.png', dpi = 400)
                 plt.close()
 
-
 def plot_rand_test(data_dir = './data/'):
     """Plot the results obtained from species_rand_test"""
     rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
@@ -446,19 +446,21 @@ def plot_rand_test(data_dir = './data/'):
     plt.subplots_adjust(wspace = 0.35, left = 0.1, right = 0.95)
     plt.savefig('rand_test.pdf', dpi = 400)
 
-def plot_obs_pred(datasets, data_dir, radius, loglog, filename, ax = None):
+def get_obs_pred_from_file(datasets, data_dir, filename):
+    """Read obs and pred value from a file"""
+    obs = []
+    pred = []
+    for i, datasets in enumerate(datasets):
+        obs_pred_data = import_obs_pred_data(data_dir + dataset + filename) 
+        obs.extend(list(obs_pred_data['obs']))
+        pred.extend(list(obs_pred_data['pred']))
+    return obs, pred
+        
+def plot_obs_pred(obs, pred, radius, loglog, ax = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
     if not ax:
         fig = plt.figure(figsize = (7, 7))
         ax = plt.subplot(111)
-
-    num_datasets = len(datasets)
-    obs = []
-    pred = []
-    for i, dataset in enumerate(datasets):
-        obs_pred_data = import_obs_pred_data(data_dir + dataset + filename) 
-        obs.extend(list(obs_pred_data['obs']))
-        pred.extend(list(obs_pred_data['pred']))
 
     axis_min = 0.9 * min(obs+pred)
     axis_max = 1.1 * max(obs+pred)
@@ -468,7 +470,6 @@ def plot_obs_pred(datasets, data_dir, radius, loglog, filename, ax = None):
     plt.ylim(axis_min, axis_max)
     plt.annotate(r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
                  xy = (0.75, 0.05), xycoords = 'axes fraction')
-    #plt.text(0.05 * axis_max, 1.3 * axis_min, r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)))
     return ax
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
@@ -510,18 +511,12 @@ def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
     fig.set_ylabel('Observed Species-Average Metabolic Rate', labelpad = 10, size = 12)
     plt.savefig('obs_pred_average_mr.png', dpi = 400)
 
-def plot_scaled_par(datasets, data_dir = "./data/", radius = 2):
+def plot_iisd_par(datasets, data_dir = "./data/", radius = 2):
     """Plot the scaled intra-specific energy distribution parameter against abundance."""
     fig = plot_obs_pred(datasets, data_dir, radius, 1, '_par.csv')
-    #fig = plot_obs_pred(datasets, data_dir, radius, 1, '_scaled_par.csv')
     fig.set_xlabel(r'Predicted $\lambda$', labelpad = 10, size = 12)
     fig.set_ylabel(r'Observed $\lambda$', labelpad = 10, size = 12)
-
-    #fig.text(0.5, 0.04, 'Abundance', ha = 'center', va = 'center')
-    #fig.text(0.04, 0.5, r'Scaled $\lambda$ for Within Species Distribution', ha = 'center', 
-             #va = 'center', rotation = 'vertical')
     plt.savefig('intra_par.png', dpi = 400)
-    #plt.savefig('intra_scaled_par.png', dpi = 400)
 
 def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_freq = 0.05, 
                        radius_mr = 2, radius_scaled_par = 2):
@@ -559,6 +554,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
     plt.savefig('four_patterns.png', dpi = 400)    
 
+def plot_four_patterns_single(data_dir = "./
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
     
