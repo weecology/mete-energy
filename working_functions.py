@@ -663,7 +663,7 @@ def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
             plt.subplots_adjust(wspace = 0.55, bottom = 0.3)
             plt.savefig(data_dir + list_of_datasets[j] + '_' + site + '_comp_cdf.png', dpi = 400)
     
-def plot_fig1(data_dir = "./data/"):
+def plot_fig1(output_dir = ""):
     """Illustration of the 4 patterns using BCI data."""
     fig = plt.figure(figsize = (7, 7))
     # Subplot A: Observed and predicted RAD
@@ -677,34 +677,36 @@ def plot_fig1(data_dir = "./data/"):
     plot_obj.semilogy(rank_obs, relab_obs, 'o', markerfacecolor='none', markersize=6, 
              markeredgecolor='#999999', markeredgewidth=1)
     plot_obj.semilogy(rank_pred, relab_pred, '-', color='#9400D3', linewidth=2)
-    plt.xlabel('Rank', fontsize = '14')
-    plt.ylabel('Relative Abundance', fontsize = '14')
+    plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.xlabel('Rank', fontsize = 8)
+    plt.ylabel('Relative abundance', fontsize = 8)
     # Subplot B: ISD shown as histogram with predicted pdf
     # Code adopted and modified from plot_ind_hist from fit_other_dist
-    dat = import_raw_data('bci7.csv')
+    dat = import_raw_data('BCI.csv')
     dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(dbh_raw / min(dbh_raw))
     dbh2_scale = dbh_scale ** 2
     E0 = sum(dbh2_scale)
     N0 = len(dbh2_scale)
     S0 = len(set(dat[dat.dtype.names[1]]))
-    
-    num_bin = int(ceil(log(max(dbh_scale)) / log(2)))
+
+    num_bin = int(ceil(log(max(dbh2_scale)) / log(4)))
     emp_pdf = []
     for i in range(num_bin):
-        count = len(dbh_scale[(dbh_scale < 2 ** (i + 1)) & (dbh_scale >= 2 ** i)])
-        emp_pdf.append(count / N0 / 2 ** i)
+        count = len(dbh2_scale[(dbh2_scale < 4 ** (i + 1)) & (dbh2_scale >= 4 ** i)])
+        emp_pdf.append(count / N0 / 4 ** i)
     psi = psi_epsilon(S0, N0, E0)
     psi_pdf = []
-    x_array = np.arange(1, ceil(max(dbh_scale)) + 1)
+    x_array = np.arange(1, ceil(max(dbh2_scale)) + 1)
     for x in x_array:
-        psi_pdf.append(float(ysquareroot_pdf(x, psi)))
+        psi_pdf.append(float(psi.pdf(x)))
     plot_obj = plt.subplot(2, 2, 2)
     plot_obj.loglog(x_array, psi_pdf, '#9400D3', linewidth = 2, label = 'METE')
-    plot_obj.bar(2 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
-            width = 0.4 * 2 ** np.array(range(num_bin)))
-    plt.xlabel('DBH')
-    plt.ylabel('Probability Density')
+    plot_obj.bar(4 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
+            width = 0.8 * 4 ** np.array(range(num_bin)))
+    plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.xlabel(r'$DBH^2$', fontsize = 8)
+    plt.ylabel('Probability density', fontsize = 8)
     # Subplot C: Size-abundance distribution, shown as DBH^2 against abundance
     # Code adopted and modified from plot_species_avg_single
     theta_epsilon_obj = theta_epsilon(S0, N0, E0)
@@ -723,8 +725,9 @@ def plot_fig1(data_dir = "./data/"):
     plot_obj = plt.subplot(2, 2, 3)
     plot_obj.loglog(np.array(dbh2_pred), np.array(n_list), color = '#9400D3', linewidth = 2)
     plot_obj.scatter(dbh2_obs, n_obs, color = '#999999', marker = 'o')
-    plt.xlabel(r'Species Level Average $DBH^2$')
-    plt.ylabel('Species Abundance')
+    plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.xlabel('Species-average metabolic rate', fontsize = 8)
+    plt.ylabel('Species abundance', fontsize = 8)
     # Subplot D: Intra-specific distribution for the most abundant species (Hybanthus prunifolius)
     hp_dbh2 = dbh2_scale[dat[dat.dtype.names[1]] == 'Hybanthus prunifolius']
     hp_num_bin = int(ceil(log(max(hp_dbh2)) / log(2)))
@@ -738,14 +741,17 @@ def plot_fig1(data_dir = "./data/"):
     lam_est = 1 / (sum(hp_dbh2) / len(hp_dbh2) - 1)
     x_array = np.arange(1, ceil(max(hp_dbh2)) + 1)
     plot_obj = plt.subplot(2, 2, 4)
-    plot_obj.loglog(x_array, exp_dist(x_array, lam_pred), '#9400D3', linewidth = 2, label = 'METE')
-    plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
+    p_mete, = plot_obj.loglog(x_array, exp_dist(x_array, lam_pred), '#9400D3', linewidth = 2, label = 'METE')
+    p_mle, = plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
     plot_obj.bar(2 ** np.array(range(hp_num_bin)), hp_emp_pdf, color = '#d6d6d6', 
         width = 0.4 * 2 ** np.array(range(hp_num_bin)))
-    plt.xlabel(r'$DBH^2$')
-    plt.ylabel('Probability Density')
+    plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.xlabel(r'$DBH^2$', fontsize = 8)
+    plt.ylabel('Probability Density', fontsize = 8)
+    plt.legend([p_mete, p_mle], ['METE parameter: '+str(round(lam_pred, 4)), 'MLE parameter: '+str(round(lam_est, 4))],
+               loc = 1, prop = {'size': 6})
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
-    plt.savefig(data_dir + 'fig1.png', dpi = 400)
+    plt.savefig(output_dir + 'fig1.pdf', dpi = 400)
 
 def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
     """Create a csv file with AICc weights of the four distributions"""
