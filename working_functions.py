@@ -47,7 +47,7 @@ def get_obs_pred_rad(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
     """
     
     usites = np.sort(list(set(raw_data["site"])))
-    f1_write = open(data_dir + dataset_name + '_obs_pred.csv', 'wb')
+    f1_write = open(data_dir + dataset_name + '_obs_pred_rad.csv', 'wb')
     f1 = csv.writer(f1_write)
     
     for i in range(0, len(usites)):
@@ -259,8 +259,8 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
                     par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)) 
                     mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
             #save results to a csv file:
-            results1 = np.zeros((len(abd), ), dtype = ('S10, f8, f8'))
-            results1['f0'] = np.array([site] * len(abd))
+            results1 = np.zeros((len(mr_avg_pred), ), dtype = ('S10, f8, f8'))
+            results1['f0'] = np.array([site] * len(mr_avg_pred))
             results1['f1'] = np.array(mr_avg_obs)
             results1['f2'] = np.array(mr_avg_pred)
             f1.writerows(results1)
@@ -475,7 +475,7 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None):
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
-    rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred.csv')
+    rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     fig = plot_obs_pred(rad_obs, rad_pred, radius, 1)
     fig.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig.set_ylabel('Observed abundance', labelpad = 4, size = 8)
@@ -535,7 +535,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     fig = plt.figure(figsize = (7, 7))
     
     ax = plt.subplot(221)
-    rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred.csv')
+    rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax)
     fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
@@ -561,7 +561,48 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
     plt.savefig('four_patterns.pdf', dpi = 400)    
 
-#def plot_four_patterns_single(data_dir = "./
+def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sad = 2, 
+                              radius_freq = 0.05, radius_mr = 2, radius_par = 2):
+    """Create the four-pattern figure for each plot separately and save all figures into a single pdf."""
+    pp = PdfPages(outfile)
+    for dataset in datasets:
+        dat_rad = import_obs_pred_data(data_dir + dataset + '_obs_pred_rad.csv')
+        dat_freq = import_obs_pred_data(data_dir + dataset + '_obs_pred_freq.csv')
+        dat_mr = import_obs_pred_data(data_dir + dataset + '_obs_pred_avg_mr.csv')
+        dat_par = import_obs_pred_data(data_dir + dataset + '_par.csv')
+        sites = np.sort(list(set(dat_rad['site'])))
+        for site in sites:
+            dat_rad_site = dat_rad[dat_rad['site'] == site]
+            dat_freq_site = dat_freq[dat_freq['site'] == site]
+            dat_mr_site = dat_mr[dat_mr['site'] == site]
+            dat_par_site = dat_par[dat_par['site'] == site]
+            
+            fig = plt.figure(figsize = (7, 7))
+            ax = plt.subplot(221)
+            fig1 = plot_obs_pred(dat_rad_site['obs'], dat_rad_site['pred'], radius_sad, 1, ax = ax)
+            fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
+            fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
+        
+            ax = plt.subplot(222)
+            fig2 = plot_obs_pred(dat_freq_site['obs'], dat_freq_site['pred'], radius_freq, 1, ax = ax)
+            fig2.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
+            fig2.set_ylabel('Observed frequency', labelpad = 4, size = 8)
+        
+            ax = plt.subplot(223)
+            fig3 = plot_obs_pred(dat_mr_site['obs'], dat_mr_site['pred'], radius_mr, 1, ax = ax)
+            fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
+            fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
+        
+            ax = plt.subplot(224)
+            fig4 = plot_obs_pred(dat_par_site['obs'], dat_par_site['pred'], radius_par, 1, ax = ax)
+            fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
+            fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
+        
+            plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
+            plt.suptitle(dataset + ',' + site)
+            plt.savefig(pp, format = 'pdf', dpi = 400)
+    pp.close()
+
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
     
@@ -627,7 +668,7 @@ def plot_fig1(data_dir = "./data/"):
     fig = plt.figure(figsize = (7, 7))
     # Subplot A: Observed and predicted RAD
     # Code adopted and modified from example_sad_plot in mete_sads
-    obs_pred_data = import_obs_pred_data('./data/'+ 'BCI' + '_obs_pred.csv')    
+    obs_pred_data = import_obs_pred_data('./data/'+ 'BCI' + '_obs_pred_rad.csv')    
     obs = obs_pred_data["obs"]   
     pred = obs_pred_data["pred"]
     rank_obs, relab_obs = macroecotools.get_rad_data(obs)
