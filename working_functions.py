@@ -210,7 +210,7 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', bin_siz
                 count = len(dbh2_scale[(dbh2_scale < bin_size ** (i + 1)) & (dbh2_scale >= bin_size ** i)])
                 freq_obs.append(count / N0 / (bin_size ** i * (bin_size - 1))) #  Divided by the interval between two ticks
                 freq_pred.append((psi.cdf(bin_size ** (i + 1)) - 
-                                  psi.cdf(bin_size ** i) / (bin_size ** i * (bin_size - 1))))
+                                  psi.cdf(bin_size ** i)) / (bin_size ** i * (bin_size - 1)))
             #save results to a csv file:
             results = np.zeros((len(freq_obs), ), dtype = ('S10, f8, f8'))
             results['f0'] = np.array([site] * len(freq_obs))
