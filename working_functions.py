@@ -173,8 +173,8 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             results['f2'] = dbh2_pred
             f1.writerows(results)
     f1_write.close()
-
-def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+    
+def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', bin_size = 1.7, cutoff = 9):
     """Use data to compare the predicted and empirical frequency for each size bins
     
     and store results in csv files.
@@ -183,6 +183,8 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', cutoff 
     dataset_name : short code that will indicate the name of the dataset in
                     the output file names
     data_dir : directory in which to store output
+    bin_size: power bin size for dbh ** 2, e.g., default value 1.7 means that bins for dbh ** 2 run from 1 to 1.7, 
+              1.7 to 1.7 **2, etc. Default 1.7 ensures that there are at least 10 bins for each dataset in our analysis.
     cutoff : minimum number of species required to run - 1.
     
     """
@@ -201,14 +203,14 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', cutoff 
         if S0 > cutoff:
             psi = psi_epsilon(S0, N0, E0)
             # Plot histogram with pdf
-            num_bin = int(ceil(log(max(dbh_scale)) / log(2)))
+            num_bin = int(ceil(log(max(dbh2_scale)) / log(bin_size)))
             freq_obs = []
             freq_pred = []
             for i in range(num_bin):
-                count = len(dbh_scale[(dbh_scale < 2 ** (i + 1)) & (dbh_scale >= 2 ** i)])
-                freq_obs.append(count / N0 / 2 ** i)
-                freq_pred.append((psi.cdf((2 ** (i + 1)) ** 2) - 
-                                  psi.cdf((2 ** i) ** 2))/ 2 ** i)
+                count = len(dbh2_scale[(dbh2_scale < bin_size ** (i + 1)) & (dbh2_scale >= bin_size ** i)])
+                freq_obs.append(count / N0 / (bin_size ** i * (bin_size - 1))) #  Divided by the interval between two ticks
+                freq_pred.append((psi.cdf(bin_size ** (i + 1)) - 
+                                  psi.cdf(bin_size ** i) / (bin_size ** i * (bin_size - 1))))
             #save results to a csv file:
             results = np.zeros((len(freq_obs), ), dtype = ('S10, f8, f8'))
             results['f0'] = np.array([site] * len(freq_obs))
@@ -216,7 +218,7 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', cutoff 
             results['f2'] = freq_pred
             f_writer.writerows(results)
     f.close()
-
+        
 def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9, n_cutoff = 4):
     """Compare the predicted and empirical average dbh^2 as well as compute the scaled 
     
@@ -253,11 +255,11 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             theta_epsilon_obj = theta_epsilon(S0, N0, E0)
             for sp in S_list:
                 sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
+                mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
+                mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
                 if len(sp_dbh2) > n_cutoff: 
                     par_pred.append(len(sp_dbh2) * psi.lambda2)
-                    mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
-                    par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)) 
-                    mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
+                    par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1))        
             #save results to a csv file:
             results1 = np.zeros((len(mr_avg_pred), ), dtype = ('S10, f8, f8'))
             results1['f0'] = np.array([site] * len(mr_avg_pred))
@@ -420,30 +422,30 @@ def plot_rand_test(data_dir = './data/'):
     """Plot the results obtained from species_rand_test"""
     rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
     rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
-    fig = plt.figure(figsize = (3.42, 2)) # 8.7cm single column width required by PNAS
-    ax_mr = plt.subplot(121)
+    fig = plt.figure(figsize = (3.42, 7)) # 8.7cm single column width required by PNAS
+    ax_mr = plt.subplot(211)
     plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ko-', markersize = 2)
     ax_mr.fill_between(np.arange(len(rand_mr[0])), rand_mr[1], rand_mr[2],
                        color = '#CFCFCF', edgecolor = '#CFCFCF')
     ax_mr.axes.get_xaxis().set_ticks([])
     y_ticks_mr = [r'$1.0$', r'$10.0$', r'$10^2$', r'$10^3$', r'$10^4$', r'$10^5$', 
                r'$10^6$', r'$10^7$', r'$10^8$', r'$10^9$', r'$10^{10}$', r'$10^{11}$']
-    ax_mr.set_yticklabels(y_ticks_mr, fontsize = 4)
-    ax_mr.set_xlabel('Plots', fontsize = 6)
-    ax_mr.set_ylabel('MSE of size-abundance relationship', fontsize = 6)
+    ax_mr.set_yticklabels(y_ticks_mr, fontsize = 6)
+    ax_mr.set_xlabel('Plots', fontsize = 8)
+    ax_mr.set_ylabel('MSE of size-abundance relationship', fontsize = 8)
     
-    ax_lambda = plt.subplot(122)
+    ax_lambda = plt.subplot(212)
     plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ko-', markersize = 2)
     ax_lambda.fill_between(np.arange(len(rand_lambda[0])), rand_lambda[1], rand_lambda[2],
                        color = '#CFCFCF', edgecolor = '#CFCFCF')
     ax_lambda.axes.get_xaxis().set_ticks([])
     y_ticks_lambda = [r'$10^{-8}$', r'$10^{-7}$', r'$10^{-6}$', r'$10^{-5}$', r'$10^{-4}$', 
                       r'$10^{-3}$', r'$10^{-2}$', r'$0.1$', r'$1.0$', r'$10.0$']
-    ax_lambda.set_yticklabels(y_ticks_lambda, fontsize = 4)
-    ax_lambda.set_xlabel('Plots', fontsize = 6)
-    ax_lambda.set_ylabel('MSE of iISD parameter', fontsize = 6)
+    ax_lambda.set_yticklabels(y_ticks_lambda, fontsize = 6)
+    ax_lambda.set_xlabel('Plots', fontsize = 8)
+    ax_lambda.set_ylabel('MSE of iISD parameter', fontsize = 8)
 
-    plt.subplots_adjust(wspace = 0.35, left = 0.1, right = 0.95)
+    plt.subplots_adjust(hspace = 0.3, left = 0.1, right = 0.95)
     plt.savefig('rand_test.pdf', dpi = 400)
 
 def get_obs_pred_from_file(datasets, data_dir, filename):
@@ -462,14 +464,14 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None):
         fig = plt.figure(figsize = (3.5, 3.5))
         ax = plt.subplot(111)
 
-    axis_min = 0.9 * min(obs+pred)
+    axis_min = max(0.9 * min(obs+pred), 10 ** -10)
     axis_max = 1.1 * max(obs+pred)
     macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog, plot_obj = ax)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
-    plt.annotate(r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
+    plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
                  xy = (0.72, 0.05), xycoords = 'axes fraction', fontsize = 7)
     return ax
 
@@ -579,22 +581,22 @@ def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sa
             
             fig = plt.figure(figsize = (7, 7))
             ax = plt.subplot(221)
-            fig1 = plot_obs_pred(dat_rad_site['obs'], dat_rad_site['pred'], radius_sad, 1, ax = ax)
+            fig1 = plot_obs_pred(list(dat_rad_site['obs']), list(dat_rad_site['pred']), radius_sad, 1, ax = ax)
             fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
             fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
         
             ax = plt.subplot(222)
-            fig2 = plot_obs_pred(dat_freq_site['obs'], dat_freq_site['pred'], radius_freq, 1, ax = ax)
+            fig2 = plot_obs_pred(list(dat_freq_site['obs']), list(dat_freq_site['pred']), radius_freq, 1, ax = ax)
             fig2.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
             fig2.set_ylabel('Observed frequency', labelpad = 4, size = 8)
         
             ax = plt.subplot(223)
-            fig3 = plot_obs_pred(dat_mr_site['obs'], dat_mr_site['pred'], radius_mr, 1, ax = ax)
+            fig3 = plot_obs_pred(list(dat_mr_site['obs']), list(dat_mr_site['pred']), radius_mr, 1, ax = ax)
             fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
             fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
         
             ax = plt.subplot(224)
-            fig4 = plot_obs_pred(dat_par_site['obs'], dat_par_site['pred'], radius_par, 1, ax = ax)
+            fig4 = plot_obs_pred(list(dat_par_site['obs']), list(dat_par_site['pred']), radius_par, 1, ax = ax)
             fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
             fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
         
@@ -602,6 +604,97 @@ def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sa
             plt.suptitle(dataset + ',' + site)
             plt.savefig(pp, format = 'pdf', dpi = 400)
     pp.close()
+
+def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radius_par = 2, title = True,
+                                   bin_size = 1.7, cutoff = 9, n_cutoff = 4):
+    """Version two of four-pattern figure at plot level."""
+    pp = PdfPages(outfile)
+    for dataset in datasets:
+        dat_rad = import_obs_pred_data(data_dir + dataset + '_obs_pred_rad.csv')
+        dat_raw = import_raw_data(dataset + '.csv')
+        dat_freq = import_obs_pred_data(data_dir + dataset + '_obs_pred_freq.csv')
+        dat_mr = import_obs_pred_data(data_dir + dataset + '_obs_pred_avg_mr.csv')
+        dat_par = import_obs_pred_data(data_dir + dataset + '_par.csv')
+        sites = np.sort(list(set(dat_rad['site'])))
+        for site in sites:
+            dat_raw_site = dat_raw[dat_raw['site'] == site]
+            sp_list = set(dat_raw_site['sp'])
+            S0 = len(sp_list)
+            if S0 > cutoff:
+                dat_rad_site = dat_rad[dat_rad['site'] == site]
+                dat_freq_site = dat_freq[dat_freq['site'] == site]
+                dat_mr_site = dat_mr[dat_mr['site'] == site]
+                dat_par_site = dat_par[dat_par['site'] == site]
+
+                obs = dat_rad_site['obs']
+                pred = dat_rad_site['pred']
+                rank_obs, relab_obs = macroecotools.get_rad_data(obs)
+                rank_pred, relab_pred = macroecotools.get_rad_data(pred)
+                
+                dbh_raw_site = dat_raw_site['dbh']
+                dbh_scale_site = np.array(dbh_raw_site / min(dbh_raw_site))
+                dbh2_scale_site = dbh_scale ** 2
+                E0 = sum(dbh2_scale_site)
+                N0 = len(dbh2_scale)
+                num_bin = int(ceil(log(max(dbh2_scale_site)) / bin_size))
+                emp_pdf = []
+                for i in range(num_bin):
+                    count = len(dbh2_scale_site[(dbh2_scale_site < bin_size ** (i + 1)) & (dbh2_scale_site >= bin_size ** i)])
+                    emp_pdf.append(count / N0 / (bin_size ** i * (bin_size - 1)))
+                psi = psi_epsilon(S0, N0, E0)
+                psi_pdf = [float(psi.pdf(x)) for x in np.arange(1, ceil(max(dbh2_scale)) + 1)]
+                
+                theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+                dbh2_obs = []
+                n_obs = []
+                for sp in sp_list:
+                    dat_sp = dbh2_scale_site[dat_raw_site['sp'] == spp]
+                    n_obs.append(len(dat_sp))
+                    dbh2_obs.append(sum(dat_sp) / len(dat_sp))
+                n_list = np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))
+                dbh2_pred = [theta_epsilon_obj.E(n) for n in n_list]
+     
+                fig = plt.figure(figsize = (7, 7))
+                ax = plt.subplot(221)
+                ax.semilogy(rank_obs, relab_obs, 'o', markerfacecolor='none', markersize=6, 
+                                  markeredgecolor='#999999', markeredgewidth=1)
+                ax.semilogy(rank_pred, relab_pred, '-', color='#9400D3', linewidth=2)
+                ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+                plt.xlabel('Rank', fontsize = 8)
+                plt.ylabel('Relative abundance', fontsize = 8)
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
+                             xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                
+                ax = plt.subplot(222)
+                ax.loglog(np.arange(1, ceil(max(dbh2_scale)) + 1), psi_pdf, '#9400D3', linewidth = 2)
+                ax.bar(bin_size ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
+                       width = 0.8 * bin_size ** np.array(range(num_bin)))
+                ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+                plt.xlabel(r'$DBH^2$', fontsize = 8)
+                plt.ylabel('Frequency', fontsize = 8)
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(dat_freq_site['obs'], dat_freq_site['pred']),
+                             xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
+ 
+                ax = plt.subplot(223)
+                ax.loglog(np.array(dbh2_pred), np.array(n_list), color = '#9400D3', linewidth = 2)
+                ax.scatter(dbh2_obs, n_obs, color = '#999999', marker = 'o')
+                ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+                plt.xlabel('Species-average metabolic rate', fontsize = 8)
+                plt.ylabel('Species abundance', fontsize = 8)
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(dat_mr_site['obs'], dat_mr_site['pred']),
+                             xy = (0.72, 0.05), xycoords = 'axes fraction', fontsize = 7)
+                
+                ax = plt.subplot(224)
+                fig4 = plot_obs_pred(list(dat_par_site['obs']), list(dat_par_site['pred']), radius_par, 1, ax = ax)
+                fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
+                fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
+                
+                plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
+                if title:
+                    plt.suptitle(dataset + ',' + site)
+                plt.savefig(pp, format = 'pdf', dpi = 400)
+    pp.close()
+
 
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
