@@ -317,11 +317,11 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
                     mr_avg_pred = []
                     for sp in S_list:
                         sp_dbh2 = dbh2_scale[subdat[subdat.dtype.names[1]] == sp]
+                        mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
+                        mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
                         if len(sp_dbh2) > n_cutoff: 
                             par_pred.append(len(sp_dbh2) * psi.lambda2)
-                            mr_avg_obs.append(sum(sp_dbh2) / len(sp_dbh2))
                             par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1))
-                            mr_avg_pred.append(theta_epsilon_obj.E(len(sp_dbh2)))
                     mr_out_row.append(macroecotools.obs_pred_mse(np.array(mr_avg_obs), 
                                                                      np.array(mr_avg_pred)))
                     lambda_out_row.append(macroecotools.obs_pred_mse(np.array(par_obs), 
@@ -465,7 +465,7 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None):
         ax = plt.subplot(111)
 
     axis_min = max(0.9 * min(obs+pred), 10 ** -10)
-    axis_max = 1.1 * max(obs+pred)
+    axis_max = 3 * max(obs+pred)
     macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog, plot_obj = ax)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
@@ -633,25 +633,25 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 
                 dbh_raw_site = dat_raw_site['dbh']
                 dbh_scale_site = np.array(dbh_raw_site / min(dbh_raw_site))
-                dbh2_scale_site = dbh_scale ** 2
+                dbh2_scale_site = dbh_scale_site ** 2
                 E0 = sum(dbh2_scale_site)
-                N0 = len(dbh2_scale)
-                num_bin = int(ceil(log(max(dbh2_scale_site)) / bin_size))
+                N0 = len(dbh2_scale_site)
+                num_bin = int(ceil(log(max(dbh2_scale_site)) / log(bin_size)))
                 emp_pdf = []
                 for i in range(num_bin):
                     count = len(dbh2_scale_site[(dbh2_scale_site < bin_size ** (i + 1)) & (dbh2_scale_site >= bin_size ** i)])
                     emp_pdf.append(count / N0 / (bin_size ** i * (bin_size - 1)))
                 psi = psi_epsilon(S0, N0, E0)
-                psi_pdf = [float(psi.pdf(x)) for x in np.arange(1, ceil(max(dbh2_scale)) + 1)]
+                psi_pdf = [float(psi.pdf(x)) for x in np.arange(1, ceil(max(dbh2_scale_site)) + 1)]
                 
                 theta_epsilon_obj = theta_epsilon(S0, N0, E0)
                 dbh2_obs = []
                 n_obs = []
                 for sp in sp_list:
-                    dat_sp = dbh2_scale_site[dat_raw_site['sp'] == spp]
+                    dat_sp = dbh2_scale_site[dat_raw_site['sp'] == sp]
                     n_obs.append(len(dat_sp))
                     dbh2_obs.append(sum(dat_sp) / len(dat_sp))
-                n_list = np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))
+                n_list = [int(x) for x in np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))]
                 dbh2_pred = [theta_epsilon_obj.E(n) for n in n_list]
      
                 fig = plt.figure(figsize = (7, 7))
@@ -666,9 +666,10 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
                 
                 ax = plt.subplot(222)
-                ax.loglog(np.arange(1, ceil(max(dbh2_scale)) + 1), psi_pdf, '#9400D3', linewidth = 2)
+                ax.loglog(np.arange(1, ceil(max(dbh2_scale_site)) + 1), psi_pdf, '#9400D3', linewidth = 2)
                 ax.bar(bin_size ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
-                       width = 0.8 * bin_size ** np.array(range(num_bin)))
+                       width = 0.4 * bin_size ** np.array(range(num_bin)))
+                plt.ylim((max(min(emp_pdf), 10 ** -10), 1))
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel(r'$DBH^2$', fontsize = 8)
                 plt.ylabel('Frequency', fontsize = 8)
@@ -783,11 +784,11 @@ def plot_fig1(output_dir = ""):
     N0 = len(dbh2_scale)
     S0 = len(set(dat[dat.dtype.names[1]]))
 
-    num_bin = int(ceil(log(max(dbh2_scale)) / log(4)))
+    num_bin = int(ceil(log(max(dbh2_scale)) / log(1.7)))
     emp_pdf = []
     for i in range(num_bin):
-        count = len(dbh2_scale[(dbh2_scale < 4 ** (i + 1)) & (dbh2_scale >= 4 ** i)])
-        emp_pdf.append(count / N0 / 4 ** i)
+        count = len(dbh2_scale[(dbh2_scale < 1.7 ** (i + 1)) & (dbh2_scale >= 1.7 ** i)])
+        emp_pdf.append(count / N0 / (1.7 ** i * 0.7))
     psi = psi_epsilon(S0, N0, E0)
     psi_pdf = []
     x_array = np.arange(1, ceil(max(dbh2_scale)) + 1)
@@ -795,8 +796,9 @@ def plot_fig1(output_dir = ""):
         psi_pdf.append(float(psi.pdf(x)))
     plot_obj = plt.subplot(2, 2, 2)
     plot_obj.loglog(x_array, psi_pdf, '#9400D3', linewidth = 2, label = 'METE')
-    plot_obj.bar(4 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
-            width = 0.8 * 4 ** np.array(range(num_bin)))
+    plot_obj.bar(1.7 ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
+            width = 0.4 * 1.7 ** np.array(range(num_bin)))
+    plt.ylim((max(min(emp_pdf), 10 ** -10), 1))
     plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.xlabel(r'$DBH^2$', fontsize = 8)
     plt.ylabel('Probability density', fontsize = 8)
@@ -811,7 +813,7 @@ def plot_fig1(output_dir = ""):
         dat_spp = sorted(dbh2_scale[dat[dat.dtype.names[1]] == spp])
         n_obs.append(len(dat_spp))
         dbh2_obs.append(sum(dat_spp) / len(dat_spp))
-    n_list = sorted(list(set([int(x) for x in np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))])))
+    n_list = [int(x) for x in np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))]
     dbh2_pred = []
     for n in n_list:
         dbh2_pred.append(theta_epsilon_obj.E(n))
@@ -823,11 +825,11 @@ def plot_fig1(output_dir = ""):
     plt.ylabel('Species abundance', fontsize = 8)
     # Subplot D: Intra-specific distribution for the most abundant species (Hybanthus prunifolius)
     hp_dbh2 = dbh2_scale[dat[dat.dtype.names[1]] == 'Hybanthus prunifolius']
-    hp_num_bin = int(ceil(log(max(hp_dbh2)) / log(2)))
+    hp_num_bin = int(ceil(log(max(hp_dbh2)) / log(1.7)))
     hp_emp_pdf = []
     for i in range(hp_num_bin):
-        count = len(hp_dbh2[(hp_dbh2 < 2 ** (i + 1)) & (hp_dbh2 >= 2 ** i)])
-        hp_emp_pdf.append(count / len(hp_dbh2) / 2 ** i)
+        count = len(hp_dbh2[(hp_dbh2 < 1.7 ** (i + 1)) & (hp_dbh2 >= 1.7 ** i)])
+        hp_emp_pdf.append(count / len(hp_dbh2) / (1.7 ** i * 0.7))
     def exp_dist(x, lam):
         return lam * np.exp(-lam * x)
     lam_pred = psi.lambda2 * len(hp_dbh2)
@@ -836,8 +838,9 @@ def plot_fig1(output_dir = ""):
     plot_obj = plt.subplot(2, 2, 4)
     p_mete, = plot_obj.loglog(x_array, exp_dist(x_array, lam_pred), '#9400D3', linewidth = 2, label = 'METE')
     p_mle, = plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
-    plot_obj.bar(2 ** np.array(range(hp_num_bin)), hp_emp_pdf, color = '#d6d6d6', 
-        width = 0.4 * 2 ** np.array(range(hp_num_bin)))
+    plot_obj.bar(1.7 ** np.array(range(hp_num_bin)), hp_emp_pdf, color = '#d6d6d6', 
+        width = 0.4 * 1.7 ** np.array(range(hp_num_bin)))
+    plt.ylim((max(min(hp_emp_pdf), 10 ** -10), 1))
     plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.xlabel(r'$DBH^2$', fontsize = 8)
     plt.ylabel('Probability Density', fontsize = 8)
