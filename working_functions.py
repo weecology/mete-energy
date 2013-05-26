@@ -167,7 +167,7 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             dbh2_pred = get_mete_pred_dbh2(dbh2_scale, S0, N0, E0)
             dbh2_obs = sorted(dbh2_scale)
             #save results to a csv file:
-            results = np.zeros((len(dhb2_obs), ), dtype = ('S10, f8, f8'))
+            results = np.zeros((len(dbh2_obs), ), dtype = ('S10, f8, f8'))
             results['f0'] = np.array([usites[i]] * len(dbh2_obs))
             results['f1'] = dbh2_obs
             results['f2'] = dbh2_pred
@@ -445,7 +445,7 @@ def plot_rand_test(data_dir = './data/'):
     ax_lambda.set_xlabel('Plots', fontsize = 8)
     ax_lambda.set_ylabel('MSE of iISD parameter', fontsize = 8)
 
-    plt.subplots_adjust(hspace = 0.3, left = 0.1, right = 0.95)
+    plt.subplots_adjust(hspace = 0.25, left = 0.25, right = 0.9, top = 0.95, bottom = 0.05)
     plt.savefig('rand_test.pdf', dpi = 400)
 
 def get_obs_pred_from_file(datasets, data_dir, filename):
