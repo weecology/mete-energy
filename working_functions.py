@@ -135,7 +135,7 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             cdf_obs = get_obs_cdf(dbh2_scale)
             #save results to a csv file:
             results = np.zeros((len(cdf_obs), ), dtype = ('S10, f8, f8'))
-            results['f0'] = np.array([usites[i]] * len(cdf_obs))
+            results['f0'] = np.array([site] * len(cdf_obs))
             results['f1'] = cdf_obs
             results['f2'] = cdf_pred
             f1.writerows(results)
@@ -170,7 +170,7 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             dbh2_obs = sorted(dbh2_scale)
             #save results to a csv file:
             results = np.zeros((len(dbh2_obs), ), dtype = ('S10, f8, f8'))
-            results['f0'] = np.array([usites[i]] * len(dbh2_obs))
+            results['f0'] = np.array([site] * len(dbh2_obs))
             results['f1'] = dbh2_obs
             results['f2'] = dbh2_pred
             f1.writerows(results)
