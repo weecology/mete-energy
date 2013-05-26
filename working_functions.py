@@ -293,15 +293,15 @@ def ks_test_sp(sp_dbh2, Nsim = 1000, p = 0.05):
     par_mle = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)
     count = 0
     for i in range(Nsim):
-        sim_dbh2 = mdis.trunc_exp.rvs(par_mle, 1, size = len(sp_dbh2))
+        sim_dbh2 = mdis.trunc_expon.rvs(par_mle, 1, size = len(sp_dbh2))
         ks_test = ks_2samp(sp_dbh2, sim_dbh2)
         if ks_test[1] <= p:
             count += 1
     return count / Nsim
 
-def ks_test(datasets, data_dir = './data/', Nsim = 10000, p = 0.05):
+def ks_test(datasets, data_dir = './data/', Nsim = 1000, p = 0.05, cutoff = 9, n_cutoff = 4):
     """Kolmogorov-Smirnov test for each species in each dataset."""
-    f_write = open(data_dir + 'ks_test_' + Nsim + '_' + p + '.csv', 'wb')
+    f_write = open(data_dir + 'ks_test_' + str(Nsim) + '_' + str(p) + '.csv', 'wb')
     f = csv.writer(f_write)
     
     for dataset in datasets:
@@ -319,7 +319,7 @@ def ks_test(datasets, data_dir = './data/', Nsim = 10000, p = 0.05):
                 sp_p_list = []
                 for sp in S_list:
                     sp_dbh2 = dbh2_scale[subdat['sp'] == sp]
-                    if len(sp_dbh2) >= 5:
+                    if len(sp_dbh2) >= n_cutoff:
                         sp_list.append(sp)
                         sp_p_list.append(ks_test_sp(sp_dbh2, Nsim, p))
             # Save to output
