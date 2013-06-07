@@ -23,6 +23,13 @@ def import_raw_data(input_filename):
                          names = ['site', 'sp', 'dbh'], delimiter = ",")
     return data
 
+def import_alt_data(input_filename):
+    """Read the data file where MR is computed with the alternative scaling method from DBH."""
+    data = np.genfromtxt(input_filename, dtype = "S15, S25, f8", skiprows = 1, 
+                         names = ['site', 'sp', 'dbh'], delimiter = ",")
+    data['dbh'] = data['dbh'] ** 0.5 # Square-root MR to be consistent with raw_data
+    return data
+
 def import_obs_pred_data(input_filename):
     data = np.genfromtxt(input_filename, dtype = "S15,f8,f8",
                                   names = ['site','obs','pred'],
@@ -1182,6 +1189,7 @@ def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './d
     cutoff: maximum proportion of records that are species not included in density_dic for the dataset to be dropped.
     Output:
     csv file with columns 'site', 'sp', and 'mr'.
+    Output will only be generated if the proportion of records with no wsg information is below the designated cutoff.
     
     """
     f_write = open(data_dir + dataset_name + '_alt_mr.csv', 'wb')
