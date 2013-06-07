@@ -506,15 +506,18 @@ def plot_rand_test(data_dir = './data/'):
 
 def get_obs_pred_from_file(datasets, data_dir, filename):
     """Read obs and pred value from a file"""
+    sites= []
     obs = []
     pred = []
     for i, dataset in enumerate(datasets):
-        obs_pred_data = import_obs_pred_data(data_dir + dataset + filename) 
+        obs_pred_data = import_obs_pred_data(data_dir + dataset + filename)
+        site_list = [dataset + '_' + x for x in list(obs_pred_data['site'])]
+        sites.extend(site_list)
         obs.extend(list(obs_pred_data['obs']))
         pred.extend(list(obs_pred_data['pred']))
-    return obs, pred
+    return sites, obs, pred
         
-def plot_obs_pred(obs, pred, radius, loglog, ax = None):
+def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
     if not ax:
         fig = plt.figure(figsize = (3.5, 3.5))
@@ -529,11 +532,15 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None):
     ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
                  xy = (0.72, 0.05), xycoords = 'axes fraction', fontsize = 7)
+    if inset:
+        axins = inset_axes(ax, width="30%", height="30%", loc=1)
+        hist_mete_r2(site, np.log10(obs), np.log10(pred))
+        plt.setp(axins, xticks=[], yticks=[])
     return ax
 
 def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
-    rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
+    rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     fig = plot_obs_pred(rad_obs, rad_pred, radius, 1)
     fig.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig.set_ylabel('Observed abundance', labelpad = 4, size = 8)
@@ -541,7 +548,7 @@ def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
 
 def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2):
     """Plot the observed vs predicted dbh2 for each individual for multiple datasets."""
-    dbh2_obs, dbh2_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_dbh2.csv')
+    dbh2_sites, dbh2_obs, dbh2_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_dbh2.csv')
     fig = plot_obs_pred(dbh2_obs, dbh2_pred, radius, 1)
     fig.set_xlabel(r'Predicted $DBH^2$', labelpad = 4, size = 8)
     fig.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
@@ -549,7 +556,7 @@ def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2):
 
 def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
     """Plot the observed vs predicted cdf for multiple datasets."""
-    cdf_obs, cdf_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_cdf.csv')
+    cdf_sites, cdf_obs, cdf_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_cdf.csv')
     fig = plot_obs_pred(cdf_obs, cdf_pred, radius, 0)
     fig.set_xlabel('Predicted F(x)', labelpad = 4, size = 8)
     fig.set_ylabel('Observed F(x)', labelpad = 4, size = 8)
@@ -557,7 +564,7 @@ def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
 
 def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05):
     """Plot the observed vs predicted size frequency for multiple datasets."""
-    freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
+    freq_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
     fig = plot_obs_pred(freq_obs, freq_pred, radius, 1)
     fig.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
     fig.set_ylabel('Observed frequency', labelpad = 4, size = 8)
@@ -569,7 +576,7 @@ def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
     for all species across multiple datasets.
     
     """
-    mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
+    mr_sites, mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
     fig = plot_obs_pred(mr_obs, mr_pred, radius, 1)
     fig.set_xlabel('Predicted species-average metabolic Rate', labelpad = 4, size = 8)
     fig.set_ylabel('Observed species-average metabolic Rate', labelpad = 4, size = 8)
@@ -577,7 +584,7 @@ def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
 
 def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", radius = 2):
     """Plot the scaled intra-specific energy distribution parameter against abundance."""
-    par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
+    par_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
     fig = plot_obs_pred(par_obs, par_pred, radius, 1)
     fig.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
     fig.set_ylabel('Observed parameter', labelpad = 4, size = 8)
@@ -593,25 +600,25 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     fig = plt.figure(figsize = (7, 7))
     
     ax = plt.subplot(221)
-    rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
+    rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax)
     fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
 
     ax = plt.subplot(222)
-    freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
+    rad_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
     fig2 = plot_obs_pred(freq_obs, freq_pred, radius_freq, 1, ax = ax)
     fig2.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
     fig2.set_ylabel('Observed frequency', labelpad = 4, size = 8)
 
     ax = plt.subplot(223)
-    mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
+    rad_sites, mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
     fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax)
     fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
     fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
 
     ax = plt.subplot(224)
-    par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
+    rad_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
     fig4 = plot_obs_pred(par_obs, par_pred, radius_par, 1, ax = ax)
     fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
     fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
@@ -1132,3 +1139,71 @@ def plot_spp_frequency_pdf(dat, spp_name1, spp_name2, data_dir = './data/'):
     plt.legend([l1, l2], [spp_name1, spp_name2], loc = 1)
 
     plt.savefig(data_dir + 'intra_dist_2spp_pdf.png', dpi = 400)
+
+def dbh_to_mass(dbh, wsg, forest_type):
+    """Convert DBH to biomass based on formulas taken from Chave et al. 2005.
+    
+    Input: 
+    dbh - diameter at breast height (cm)
+    wsg - wood specific gravity (g/cm**3)
+    forest_type - forest type that determines fitting parameters. 
+                  Can take one of the four values: "dry", "moist", "wet" and "mangrove". 
+    Output: above ground biomass (kg)
+    
+    """
+    if forest_type == "dry":
+        a, b = -0.667, 1.784
+    elif forest_type == "moist":
+        a, b = -1.499, 2.148
+    elif forest_type == "wet":
+        a, b = -1.239, 1.98
+    elif forest_type == "mangrove":
+        a, b = -1.349, 1.98
+    else: 
+        print "Error: unidentified forest type."
+        return None
+    c, d = 0.207, -0.0281
+    return wsg * exp(a + b * log(dbh) + c * log(dbh) ** 2 + d * log(dbh) ** 3)
+
+def mass_to_resp(agb):
+    """Convert aboveground biomass (kg) to respiration rate (miu-mol/s) based on Mori et al. 2010 Eqn 2"""
+    G, H, g, h = 6.69, 0.421, 1.082, 0.78
+    return 1 / (1 / (G * agb ** g) + 1 / (H * agb ** h))
+
+def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './data/', cutoff = 0.2):
+    """Alternative method to obtain metabolic rate from dbh.
+    
+    Input:
+    raw_data: data imported with import_raw_data, with three columns 'site', 'sp', and 'dbh'.
+    dataset_name: name of the dataset, string.
+    density_dic: a dictionary holding wood density (wsg) of each species.
+    data_dir: directory to save the output.
+    cutoff: maximum proportion of records that are species not included in density_dic for the dataset to be dropped.
+    Output:
+    csv file with columns 'site', 'sp', and 'mr'.
+    
+    """
+    f_write = open(data_dir + dataset_name + '_alt_mr', 'wb')
+    f = csv.writer(f_write)
+
+    usites = np.sort(list(set(raw_data['site'])))
+    mean_msg = sum(density_dic.values()) / len(density_dic.values()) # Average wsg for all species
+    for site in usites:
+        data_site = raw_data[raw_data['site'] == site]
+        records_with_no_wsg = 0
+        mr_list = []
+        for record in data_site:
+            if record[1] in density_dic:
+                msg_record = density_dic[record[1]]
+            else:
+                msg_record = mean_msg
+                records_with_no_wsg += 1
+            mass_record = dbh_to_mass(record[2], msg_record, forest_type)
+            mr_list.append(mass_to_resp(mass_record))
+        if records_with_no_wsg <= cutoff * len(data_site):
+            results = np.zeros(len(data_site), dtype = ('S10, S10, f8'))
+            results['f0'] = data_site['site']
+            results['f1'] = data_site['sp']
+            results['f2'] = np.array(mr_list)
+            f.writerows(results)
+    f_write.close()
