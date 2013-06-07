@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 from mete import *
+from mete_sads import hist_mete_r2
 import macroecotools
 import macroeco_distributions as mdis
 from fit_other_dist import *
@@ -1183,7 +1184,7 @@ def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './d
     csv file with columns 'site', 'sp', and 'mr'.
     
     """
-    f_write = open(data_dir + dataset_name + '_alt_mr', 'wb')
+    f_write = open(data_dir + dataset_name + '_alt_mr.csv', 'wb')
     f = csv.writer(f_write)
 
     usites = np.sort(list(set(raw_data['site'])))
@@ -1201,7 +1202,7 @@ def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './d
             mass_record = dbh_to_mass(record[2], msg_record, forest_type)
             mr_list.append(mass_to_resp(mass_record))
         if records_with_no_wsg <= cutoff * len(data_site):
-            results = np.zeros(len(data_site), dtype = ('S10, S10, f8'))
+            results = np.zeros(len(data_site), dtype = ('S15, S25, f8'))
             results['f0'] = data_site['site']
             results['f1'] = data_site['sp']
             results['f2'] = np.array(mr_list)
