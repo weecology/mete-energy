@@ -531,18 +531,29 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
         fig = plt.figure(figsize = (3.5, 3.5))
         ax = plt.subplot(111)
 
-    axis_min = max(0.9 * min(obs+pred), 10 ** -10)
-    axis_max = 3 * max(obs+pred)
+    axis_min = 0.9 * min(list(obs[obs > 0]) + list(pred[pred > 0]))
+    if loglog:
+        axis_max = 3 * max(list(obs)+list(pred))
+    else:
+        axis_max = 1.1 * max(list(obs)+list(pred))
     macroecotools.plot_color_by_pt_dens(np.array(pred), np.array(obs), radius, loglog=loglog, plot_obj = ax)      
     plt.plot([axis_min, axis_max],[axis_min, axis_max], 'k-')
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
-    plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)),
-                 xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
+    if loglog:
+        plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
+                     xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
+    else:
+        plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred),
+                     xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
     if inset:
         axins = inset_axes(ax, width="30%", height="30%", loc=4)
-        hist_mete_r2(sites, np.log10(obs), np.log10(pred))
+        if loglog:
+            sites = sites[(obs != 0) * (pred != 0)]
+            hist_mete_r2(sites, np.log10(obs), np.log10(pred))
+        else:
+            hist_mete_r2(sites, obs, pred)
         plt.setp(axins, xticks=[], yticks=[])
     return ax
 
@@ -763,7 +774,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel('Rank', fontsize = 8)
                 plt.ylabel('Relative abundance', fontsize = 8)
-                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)),
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
                 
                 ax = plt.subplot(222)
@@ -774,7 +785,9 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel(r'$DBH^2$', fontsize = 8)
                 plt.ylabel('Frequency', fontsize = 8)
-                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(dat_freq_site['obs']), np.log10(dat_freq_site['pred'])),
+                obs = dat_freq_site['obs']
+                pred = dat_freq_site['pred']
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
  
                 ax = plt.subplot(223)
@@ -783,11 +796,13 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel('Species-average metabolic rate', fontsize = 8)
                 plt.ylabel('Species abundance', fontsize = 8)
-                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(dat_mr_site['obs']), np.log10(dat_mr_site['pred'])),
-                             xy = (0.72, 0.05), xycoords = 'axes fraction', fontsize = 7)
+                obs = dat_mr_site['obs']
+                pred = dat_mr_site['pred']
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
+                             xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
                 
                 ax = plt.subplot(224)
-                fig4 = plot_obs_pred(list(dat_par_site['obs']), list(dat_par_site['pred']), radius_par, 1, ax = ax)
+                fig4 = plot_obs_pred(dat_par_site['obs'], dat_par_site['pred'], radius_par, 1, ax = ax)
                 fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
                 fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
                 
@@ -854,7 +869,7 @@ def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
             plt.xlabel('Predicted F(x)')
             plt.ylabel('Observed F(x)')
             plt.text(axis_max * 0.8, axis_max / 3, 
-                     r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)))
+                     r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])))
             plt.subplots_adjust(wspace = 0.55, bottom = 0.3)
             plt.savefig(data_dir + list_of_datasets[j] + '_' + site + '_comp_cdf.png', dpi = 400)
     
