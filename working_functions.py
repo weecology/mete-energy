@@ -23,9 +23,9 @@ def import_raw_data(input_filename):
                          names = ['site', 'sp', 'dbh'], delimiter = ",")
     return data
 
-def import_alt_data(input_filename):
+def import_alt_data(input_filename, data_dir = './data/'):
     """Read the data file where MR is computed with the alternative scaling method from DBH."""
-    data = np.genfromtxt(input_filename, dtype = "S15, S25, f8", skiprows = 1, 
+    data = np.genfromtxt(data_dir + input_filename, dtype = "S15, S25, f8", skiprows = 1, 
                          names = ['site', 'sp', 'dbh'], delimiter = ",")
     data['dbh'] = data['dbh'] ** 0.5 # Square-root MR to be consistent with raw_data
     return data
@@ -523,7 +523,7 @@ def get_obs_pred_from_file(datasets, data_dir, filename):
         sites.extend(site_list)
         obs.extend(list(obs_pred_data['obs']))
         pred.extend(list(obs_pred_data['pred']))
-    return sites, obs, pred
+    return np.array(sites), np.array(obs), np.array(pred)
         
 def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = None):
     """Generic function to generate an observed vs predicted figure with 1:1 line"""
@@ -538,68 +538,86 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
     plt.xlim(axis_min, axis_max)
     plt.ylim(axis_min, axis_max)
     ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
-    plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
-                 xy = (0.72, 0.05), xycoords = 'axes fraction', fontsize = 7)
+    plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)),
+                 xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
     if inset:
-        axins = inset_axes(ax, width="30%", height="30%", loc=1)
-        hist_mete_r2(site, np.log10(obs), np.log10(pred))
+        axins = inset_axes(ax, width="30%", height="30%", loc=4)
+        hist_mete_r2(sites, np.log10(obs), np.log10(pred))
         plt.setp(axins, xticks=[], yticks=[])
     return ax
 
-def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2):
+def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2, inset = False):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
     rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
-    fig = plot_obs_pred(rad_obs, rad_pred, radius, 1)
+    if inset:
+        fig = plot_obs_pred(rad_obs, rad_pred, radius, 1, inset = True, sites = rad_sites)
+    else: 
+        fig = plot_obs_pred(rad_obs, rad_pred, radius, 1)
     fig.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig.set_ylabel('Observed abundance', labelpad = 4, size = 8)
     plt.savefig('obs_pred_sad.png', dpi = 400)
 
-def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2):
+def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2, inset = False):
     """Plot the observed vs predicted dbh2 for each individual for multiple datasets."""
     dbh2_sites, dbh2_obs, dbh2_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_dbh2.csv')
-    fig = plot_obs_pred(dbh2_obs, dbh2_pred, radius, 1)
+    if inset:
+        fig = plot_obs_pred(dbh2_obs, dbh2_pred, radius, 1, inset = True, sites = dbh2_sites)
+    else:
+        fig = plot_obs_pred(dbh2_obs, dbh2_pred, radius, 1)
     fig.set_xlabel(r'Predicted $DBH^2$', labelpad = 4, size = 8)
     fig.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
     plt.savefig('obs_pred_dbh2.png', dpi = 400)
 
-def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05):
+def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05, inset = False):
     """Plot the observed vs predicted cdf for multiple datasets."""
     cdf_sites, cdf_obs, cdf_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_cdf.csv')
-    fig = plot_obs_pred(cdf_obs, cdf_pred, radius, 0)
+    if inset:
+        fig = plot_obs_pred(cdf_obs, cdf_pred, radius, 0, inset = True, sites = cdf_sites)
+    else:
+        fig = plot_obs_pred(cdf_obs, cdf_pred, radius, 0)
     fig.set_xlabel('Predicted F(x)', labelpad = 4, size = 8)
     fig.set_ylabel('Observed F(x)', labelpad = 4, size = 8)
     plt.savefig('obs_pred_cdf.png', dpi = 400)
 
-def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05):
+def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05, inset = False):
     """Plot the observed vs predicted size frequency for multiple datasets."""
     freq_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
-    fig = plot_obs_pred(freq_obs, freq_pred, radius, 1)
+    if inset:
+        fig = plot_obs_pred(freq_obs, freq_pred, radius, 1, inset = True, sites = freq_sites)
+    else:
+        fig = plot_obs_pred(freq_obs, freq_pred, radius, 1)
     fig.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
     fig.set_ylabel('Observed frequency', labelpad = 4, size = 8)
     plt.savefig('obs_pred_freq.png', dpi = 400)
 
-def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2):
+def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2, inset = False):
     """Plot the observed vs predicted species-level average metabolic rate 
     
     for all species across multiple datasets.
     
     """
     mr_sites, mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
-    fig = plot_obs_pred(mr_obs, mr_pred, radius, 1)
+    if inset:
+        fig = plot_obs_pred(mr_obs, mr_pred, radius, 1, inset = True, sites = mr_sites)
+    else:
+        fig = plot_obs_pred(mr_obs, mr_pred, radius, 1)
     fig.set_xlabel('Predicted species-average metabolic Rate', labelpad = 4, size = 8)
     fig.set_ylabel('Observed species-average metabolic Rate', labelpad = 4, size = 8)
     plt.savefig('obs_pred_average_mr.png', dpi = 400)
 
-def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", radius = 2):
+def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", radius = 2, inset = False):
     """Plot the scaled intra-specific energy distribution parameter against abundance."""
     par_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
-    fig = plot_obs_pred(par_obs, par_pred, radius, 1)
+    if inset:
+        fig = plot_obs_pred(par_obs, par_pred, radius, 1, inset = True, sites = par_sites)
+    else:
+        fig = plot_obs_pred(par_obs, par_pred, radius, 1)
     fig.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
     fig.set_ylabel('Observed parameter', labelpad = 4, size = 8)
     plt.savefig('intra_par.png', dpi = 400)
 
 def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_freq = 0.05, 
-                       radius_mr = 2, radius_par = 2):
+                       radius_mr = 2, radius_par = 2, inset = False):
     """Plot predicted versus observed data for 4 patterns (SAD, ISD, abundance-MR relationship, 
     
     scaled parameter for intraspecific MR distribution) as subplots in a single figure.
@@ -609,25 +627,37 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     
     ax = plt.subplot(221)
     rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
-    fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax)
+    if inset:
+        fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax, inset = True, sites = rad_sites)
+    else:
+        fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax)
     fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
 
     ax = plt.subplot(222)
-    rad_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
-    fig2 = plot_obs_pred(freq_obs, freq_pred, radius_freq, 1, ax = ax)
+    freq_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
+    if inset:
+        fig2 = plot_obs_pred(freq_obs, freq_pred, radius_freq, 1, ax = ax, inset = True, sites = freq_sites)
+    else:
+        fig2 = plot_obs_pred(freq_obs, freq_pred, radius_freq, 1, ax = ax)
     fig2.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
     fig2.set_ylabel('Observed frequency', labelpad = 4, size = 8)
 
     ax = plt.subplot(223)
-    rad_sites, mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
-    fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax)
+    mr_sites, mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
+    if inset:
+        fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax, inset = True, sites = mr_sites)
+    else:
+        fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax)
     fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
     fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
 
     ax = plt.subplot(224)
-    rad_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
-    fig4 = plot_obs_pred(par_obs, par_pred, radius_par, 1, ax = ax)
+    par_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
+    if inset:
+        fig4 = plot_obs_pred(par_obs, par_pred, radius_par, 1, ax = ax, inset = True, sites = par_sites)
+    else:
+        fig4 = plot_obs_pred(par_obs, par_pred, radius_par, 1, ax = ax)
     fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
     fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
 
@@ -733,7 +763,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel('Rank', fontsize = 8)
                 plt.ylabel('Relative abundance', fontsize = 8)
-                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)),
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)),
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
                 
                 ax = plt.subplot(222)
@@ -744,7 +774,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel(r'$DBH^2$', fontsize = 8)
                 plt.ylabel('Frequency', fontsize = 8)
-                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(dat_freq_site['obs'], dat_freq_site['pred']),
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(dat_freq_site['obs']), np.log10(dat_freq_site['pred'])),
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
  
                 ax = plt.subplot(223)
@@ -753,7 +783,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
                 plt.xlabel('Species-average metabolic rate', fontsize = 8)
                 plt.ylabel('Species abundance', fontsize = 8)
-                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(dat_mr_site['obs'], dat_mr_site['pred']),
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(dat_mr_site['obs']), np.log10(dat_mr_site['pred'])),
                              xy = (0.72, 0.05), xycoords = 'axes fraction', fontsize = 7)
                 
                 ax = plt.subplot(224)
@@ -824,7 +854,7 @@ def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
             plt.xlabel('Predicted F(x)')
             plt.ylabel('Observed F(x)')
             plt.text(axis_max * 0.8, axis_max / 3, 
-                     r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.array(obs), np.array(pred)))
+                     r'$r^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)))
             plt.subplots_adjust(wspace = 0.55, bottom = 0.3)
             plt.savefig(data_dir + list_of_datasets[j] + '_' + site + '_comp_cdf.png', dpi = 400)
     
