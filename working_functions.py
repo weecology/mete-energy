@@ -23,13 +23,6 @@ def import_raw_data(input_filename):
                          names = ['site', 'sp', 'dbh'], delimiter = ",")
     return data
 
-def import_alt_data(input_filename, data_dir = './data/'):
-    """Read the data file where MR is computed with the alternative scaling method from DBH."""
-    data = np.genfromtxt(data_dir + input_filename, dtype = "S15, S25, f8", skiprows = 1, 
-                         names = ['site', 'sp', 'dbh'], delimiter = ",")
-    data['dbh'] = data['dbh'] ** 0.5 # Square-root MR to be consistent with raw_data
-    return data
-
 def import_obs_pred_data(input_filename):
     data = np.genfromtxt(input_filename, dtype = "S15,f8,f8",
                                   names = ['site','obs','pred'],
@@ -1223,7 +1216,7 @@ def mass_to_resp(agb):
     G, H, g, h = 6.69, 0.421, 1.082, 0.78
     return 1 / (1 / (G * agb ** g) + 1 / (H * agb ** h))
 
-def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './data/', cutoff = 0.2):
+def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = '', cutoff = 0.2):
     """Alternative method to obtain metabolic rate from dbh.
     
     Input:
@@ -1237,8 +1230,13 @@ def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './d
     Output will only be generated if the proportion of records with no wsg information is below the designated cutoff.
     
     """
-    f_write = open(data_dir + dataset_name + '_alt_mr.csv', 'wb')
+    f_write = open(data_dir + dataset_name + '_alt.csv', 'wb')
     f = csv.writer(f_write)
+    col_names = np.zeros(1, dtype = ('S15, S15, S15'))
+    col_names['f0'] = 'site'
+    col_names['f1'] = 'sp'
+    col_names['f2'] = 'mr_square_root'
+    f.writerows(col_names)
 
     usites = np.sort(list(set(raw_data['site'])))
     mean_msg = sum(density_dic.values()) / len(density_dic.values()) # Average wsg for all species
@@ -1258,6 +1256,6 @@ def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = './d
             results = np.zeros(len(data_site), dtype = ('S15, S25, f8'))
             results['f0'] = data_site['site']
             results['f1'] = data_site['sp']
-            results['f2'] = np.array(mr_list)
+            results['f2'] = np.array(mr_list) ** 0.5 # Square-root to be consistent with dbh in raw_data
             f.writerows(results)
     f_write.close()
