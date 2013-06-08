@@ -68,7 +68,7 @@ def get_obs_pred_rad(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
             pred = np.array(mete_pred[0])
             obsab = np.sort(subab)[::-1]
             #save results to a csv file:
-            results = np.zeros((len(obsab), ), dtype = ('S10, i8, i8'))
+            results = np.zeros((len(obsab), ), dtype = ('S15, i8, i8'))
             results['f0'] = np.array([usites[i]] * len(obsab))
             results['f1'] = obsab
             results['f2'] = pred
@@ -135,7 +135,7 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             cdf_pred = get_mete_pred_cdf(dbh2_scale, S0, N0, E0)
             cdf_obs = get_obs_cdf(dbh2_scale)
             #save results to a csv file:
-            results = np.zeros((len(cdf_obs), ), dtype = ('S10, f8, f8'))
+            results = np.zeros((len(cdf_obs), ), dtype = ('S15, f8, f8'))
             results['f0'] = np.array([site] * len(cdf_obs))
             results['f1'] = cdf_obs
             results['f2'] = cdf_pred
@@ -170,7 +170,7 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             dbh2_pred = get_mete_pred_dbh2(dbh2_scale, S0, N0, E0)
             dbh2_obs = sorted(dbh2_scale)
             #save results to a csv file:
-            results = np.zeros((len(dbh2_obs), ), dtype = ('S10, f8, f8'))
+            results = np.zeros((len(dbh2_obs), ), dtype = ('S15, f8, f8'))
             results['f0'] = np.array([site] * len(dbh2_obs))
             results['f1'] = dbh2_obs
             results['f2'] = dbh2_pred
@@ -215,7 +215,7 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', bin_siz
                 freq_pred.append((psi.cdf(bin_size ** (i + 1)) - 
                                   psi.cdf(bin_size ** i)) / (bin_size ** i * (bin_size - 1)))
             #save results to a csv file:
-            results = np.zeros((len(freq_obs), ), dtype = ('S10, f8, f8'))
+            results = np.zeros((len(freq_obs), ), dtype = ('S15, f8, f8'))
             results['f0'] = np.array([site] * len(freq_obs))
             results['f1'] = freq_obs
             results['f2'] = freq_pred
@@ -264,13 +264,13 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
                     par_pred.append(len(sp_dbh2) * psi.lambda2)
                     par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1))        
             #save results to a csv file:
-            results1 = np.zeros((len(mr_avg_pred), ), dtype = ('S10, f8, f8'))
+            results1 = np.zeros((len(mr_avg_pred), ), dtype = ('S15, f8, f8'))
             results1['f0'] = np.array([site] * len(mr_avg_pred))
             results1['f1'] = np.array(mr_avg_obs)
             results1['f2'] = np.array(mr_avg_pred)
             f1.writerows(results1)
             
-            results2 = np.zeros((len(par_pred), ), dtype = ('S10, f8, f8'))
+            results2 = np.zeros((len(par_pred), ), dtype = ('S15, f8, f8'))
             results2['f0'] = np.array([site] * len(par_pred))
             results2['f1'] = np.array(par_obs)
             results2['f2'] = np.array(par_pred)
@@ -543,8 +543,8 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
     if inset:
         axins = inset_axes(ax, width="30%", height="30%", loc=4)
         if loglog:
-            sites = sites[(obs != 0) * (pred != 0)]
-            hist_mete_r2(sites, np.log10(obs), np.log10(pred))
+            hist_mete_r2(sites[(obs != 0) * (pred != 0)], np.log10(obs[(obs != 0) * (pred != 0)]), 
+                         np.log10(pred[(obs != 0) * (pred != 0)]))
         else:
             hist_mete_r2(sites, obs, pred)
         plt.setp(axins, xticks=[], yticks=[])
