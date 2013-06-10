@@ -1216,46 +1216,48 @@ def mass_to_resp(agb):
     G, H, g, h = 6.69, 0.421, 1.082, 0.78
     return 1 / (1 / (G * agb ** g) + 1 / (H * agb ** h))
 
-def get_mr_alt(raw_data, dataset_name, forest_type, density_dic, data_dir = '', cutoff = 0.2):
+def get_mr_alt(list_of_sites_and_forest_types, density_dic, data_dir = ''):
     """Alternative method to obtain metabolic rate from dbh.
     
     Input:
-    raw_data: data imported with import_raw_data, with three columns 'site', 'sp', and 'dbh'.
-    dataset_name: name of the dataset, string.
+    list_of_sites_and_forest_types: input file name with three columns - dat_name, site, forest type.
     density_dic: a dictionary holding wood density (wsg) of each species.
     data_dir: directory to save the output.
     cutoff: maximum proportion of records that are species not included in density_dic for the dataset to be dropped.
     Output:
-    csv file with columns 'site', 'sp', and 'mr'.
-    Output will only be generated if the proportion of records with no wsg information is below the designated cutoff.
+    A csv file for each site with columns 'site', 'sp', and 'mr'.
     
     """
-    f_write = open(data_dir + dataset_name + '_alt.csv', 'wb')
-    f = csv.writer(f_write)
-    col_names = np.zeros(1, dtype = ('S15, S15, S15'))
-    col_names['f0'] = 'site'
-    col_names['f1'] = 'sp'
-    col_names['f2'] = 'mr_square_root'
-    f.writerows(col_names)
+    dat_sites = np.genfromtxt(list_of_sites_and_forest_types, dtype = "S15,S15,S15",
+                              names = ['dat_name','site','forest_type'],
+                              delimiter = ",")
+    mean_msg = sum(density_dic.values()) / len(density_dic.values())
+    
+    for dat_name in np.unique(dat_sites['dat_name']):
+        f_write = open(data_dir + dat_name + '_alt.csv', 'wb')
+        f = csv.writer(f_write)
+        col_names = np.zeros(1, dtype = ('S15, S15, S15'))
+        col_names['f0'] = 'site'
+        col_names['f1'] = 'sp'
+        col_names['f2'] = 'mr_square_root'
+        f.writerows(col_names)
 
-    usites = np.sort(list(set(raw_data['site'])))
-    mean_msg = sum(density_dic.values()) / len(density_dic.values()) # Average wsg for all species
-    for site in usites:
-        data_site = raw_data[raw_data['site'] == site]
-        records_with_no_wsg = 0
-        mr_list = []
-        for record in data_site:
-            if record[1] in density_dic:
-                msg_record = density_dic[record[1]]
-            else:
-                msg_record = mean_msg
-                records_with_no_wsg += 1
-            mass_record = dbh_to_mass(record[2], msg_record, forest_type)
-            mr_list.append(mass_to_resp(mass_record))
-        if records_with_no_wsg <= cutoff * len(data_site):
-            results = np.zeros(len(data_site), dtype = ('S15, S25, f8'))
-            results['f0'] = data_site['site']
-            results['f1'] = data_site['sp']
+        raw_data = import_raw_data(dat_name + '.csv')
+        site_list = dat_sites[dat_sites['dat_name'] == dat_name]
+        for site in np.unique(site_list['site']):
+            dat_site = raw_data[raw_data['site'] == site]
+            forest_type = site_list[site_list['site'] == site]['forest_type']
+            mr_list = []
+            for record in dat_site:
+                if record[1] in density_dic:
+                    msg_record = density_dic[record[1]]
+                else:
+                    msg_record = mean_msg
+                mass_record = dbh_to_mass(record[2], msg_record, forest_type)
+                mr_list.append(mass_to_resp(mass_record))
+            results = np.zeros(len(dat_site), dtype = ('S15, S25, f8'))
+            results['f0'] = dat_site['site']
+            results['f1'] = dat_site['sp']
             results['f2'] = np.array(mr_list) ** 0.5 # Square-root to be consistent with dbh in raw_data
             f.writerows(results)
-    f_write.close()
+        f_write.close()
