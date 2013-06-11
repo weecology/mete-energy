@@ -289,6 +289,8 @@ def ks_test_sp(sp_dbh2, Nsim = 1000, p = 0.05):
     dbh2_sp: a vector (array) of rescaled dbh2 value for one species.
     Nsim: number of simulated samples
     p: level of significance
+    Output:
+    Proportion of tests that are significant
     
     """
     par_mle = 1 / (sum(sp_dbh2) / len(sp_dbh2) - 1)
@@ -996,6 +998,27 @@ def plot_hist(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
         fig.text(0.04, 0.5, 'Probability Density', ha = 'center', va = 'center', 
                  rotation = 'vertical')
     plt.savefig('ind_dist.png', dpi = 400)
+
+def plot_dens_ks_test(p_list, sig_level):
+    """Create an across-species density plot of the proportion of significant Kolmogorov-Smirnov tests.
+    
+    Input:
+    p_list - a list of proportions of significant KS tests. One value for each species.
+    sig_level - significance level at which the KS tests were conducted.
+    
+    """
+    fig = plt.figure(figsize = (7, 7))
+    hist_p = np.histogram(p_list, 20, range=(0, 1))
+    densities = hist_p[0] / len(p_list)
+    plt.bar(np.arange(0, 1, 0.05), densities, width = 0.05, color = '#d6d6d6')
+    plt.xlabel('Proportion of significant tests within species', fontsize = 12)
+    plt.ylabel('Density', fontsize = 12)
+    plt.vlines(sig_level, 0, 1, color = 'k', linestyle = 'dashed', linewidth = 2)
+    plt.axis([0, 1, 0, 1])
+    plt.annotate('Species with non-exponential iISD: %s%%' %(round(len(p_list[np.array(p_list) >= sig_level])/len(p_list)*100, 2)),
+                 xy = (0.3, 0.7), xycoords = 'axes fraction', color = 'k')
+
+    plt.savefig('Density_KS_test.png', dpi = 400)
 
 def plot_spp_exp_single(dat, threshold = 5, plot_obj = None):
     """Plot the MLE exponential parameter for each species against abundance n, 
