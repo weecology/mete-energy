@@ -538,10 +538,10 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
     ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
     if loglog:
         plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
-                     xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                     xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 7)
     else:
         plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(obs, pred),
-                     xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                     xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 7)
     if inset:
         axins = inset_axes(ax, width="30%", height="30%", loc=4)
         if loglog:
@@ -637,6 +637,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
         fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax, inset = True, sites = rad_sites)
     else:
         fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax)
+    fig1.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
 
@@ -646,6 +647,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
         fig2 = plot_obs_pred(freq_obs, freq_pred, radius_freq, 1, ax = ax, inset = True, sites = freq_sites)
     else:
         fig2 = plot_obs_pred(freq_obs, freq_pred, radius_freq, 1, ax = ax)
+    fig2.annotate('(B)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     fig2.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
     fig2.set_ylabel('Observed frequency', labelpad = 4, size = 8)
 
@@ -655,6 +657,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
         fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax, inset = True, sites = mr_sites)
     else:
         fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax)
+    fig3.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
     fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
 
@@ -664,6 +667,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
         fig4 = plot_obs_pred(par_obs, par_pred, radius_par, 1, ax = ax, inset = True, sites = par_sites)
     else:
         fig4 = plot_obs_pred(par_obs, par_pred, radius_par, 1, ax = ax)
+    fig4.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
     fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
 
@@ -689,21 +693,25 @@ def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sa
             fig = plt.figure(figsize = (7, 7))
             ax = plt.subplot(221)
             fig1 = plot_obs_pred(list(dat_rad_site['obs']), list(dat_rad_site['pred']), radius_sad, 1, ax = ax)
+            fig1.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
             fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
             fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
         
             ax = plt.subplot(222)
             fig2 = plot_obs_pred(list(dat_freq_site['obs']), list(dat_freq_site['pred']), radius_freq, 1, ax = ax)
+            fig2.annotate('(B)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
             fig2.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
             fig2.set_ylabel('Observed frequency', labelpad = 4, size = 8)
         
             ax = plt.subplot(223)
             fig3 = plot_obs_pred(list(dat_mr_site['obs']), list(dat_mr_site['pred']), radius_mr, 1, ax = ax)
+            fig3.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
             fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
             fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
         
             ax = plt.subplot(224)
             fig4 = plot_obs_pred(list(dat_par_site['obs']), list(dat_par_site['pred']), radius_par, 1, ax = ax)
+            fig4.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
             fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
             fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
         
@@ -771,6 +779,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 plt.ylabel('Relative abundance', fontsize = 8)
                 plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                plt.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
                 
                 ax = plt.subplot(222)
                 ax.loglog(np.arange(1, ceil(max(dbh2_scale_site)) + 1), psi_pdf, '#9400D3', linewidth = 2)
@@ -784,6 +793,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 pred = dat_freq_site['pred']
                 plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
                              xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                plt.annotate('(B)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
  
                 ax = plt.subplot(223)
                 ax.loglog(np.array(dbh2_pred), np.array(n_list), color = '#9400D3', linewidth = 2)
@@ -794,12 +804,14 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 obs = dat_mr_site['obs']
                 pred = dat_mr_site['pred']
                 plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
-                             xy = (0.05, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                             xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 7)
+                plt.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
                 
                 ax = plt.subplot(224)
                 fig4 = plot_obs_pred(dat_par_site['obs'], dat_par_site['pred'], radius_par, 1, ax = ax)
                 fig4.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
                 fig4.set_ylabel('Observed parameter', labelpad = 4, size = 8)
+                fig4.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
                 
                 plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
                 if title:
@@ -885,6 +897,7 @@ def plot_fig1(output_dir = ""):
     plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.xlabel('Rank', fontsize = 8)
     plt.ylabel('Relative abundance', fontsize = 8)
+    plot_obj.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     # Subplot B: ISD shown as histogram with predicted pdf
     # Code adopted and modified from plot_ind_hist from fit_other_dist
     dat = import_raw_data('BCI.csv')
@@ -913,6 +926,7 @@ def plot_fig1(output_dir = ""):
     plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.xlabel(r'$DBH^2$', fontsize = 8)
     plt.ylabel('Probability density', fontsize = 8)
+    plot_obj.annotate('(B)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     # Subplot C: Size-abundance distribution, shown as DBH^2 against abundance
     # Code adopted and modified from plot_species_avg_single
     theta_epsilon_obj = theta_epsilon(S0, N0, E0)
@@ -934,6 +948,7 @@ def plot_fig1(output_dir = ""):
     plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.xlabel('Species-average metabolic rate', fontsize = 8)
     plt.ylabel('Species abundance', fontsize = 8)
+    plot_obj.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     # Subplot D: Intra-specific distribution for the most abundant species (Hybanthus prunifolius)
     hp_dbh2 = dbh2_scale[dat[dat.dtype.names[1]] == 'Hybanthus prunifolius']
     hp_num_bin = int(ceil(log(max(hp_dbh2)) / log(1.7)))
@@ -955,6 +970,7 @@ def plot_fig1(output_dir = ""):
     plot_obj.tick_params(axis = 'both', which = 'major', labelsize = 6)
     plt.xlabel(r'$DBH^2$', fontsize = 8)
     plt.ylabel('Probability Density', fontsize = 8)
+    plot_obj.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     plt.legend([p_mete, p_mle], ['METE parameter: '+str(round(lam_pred, 4)), 'MLE parameter: '+str(round(lam_est, 4))],
                loc = 1, prop = {'size': 6})
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
