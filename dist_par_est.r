@@ -8,7 +8,8 @@ trunc_weibull_par_est = function(x, lower_bound){
   trunc_weibull_lb = function(x, k, lmd){
     return (trunc_weibull(x, k, lmd, lower_bound))
   }
-  return (as.numeric(fitdistr(x, trunc_weibull_lb, list(k = 1, lmd = mean(x) / gamma(1 + 1/1)))$estimate))
+  weibull_est = as.numeric((fitdistr(x, 'weibull'))$estimate)
+  return (as.numeric(fitdistr(x, trunc_weibull_lb, list(k = weibull_est[1], lmd = weibull_est[2]))$estimate))
 }
 
 trunc_expon_par_est = function(x, lower_bound){
@@ -26,24 +27,24 @@ read_file = function(path){
 }
 
 get_par = function(dat_list, out_file){
-  list_elements = names(dat_list)
-  par_out = as.data.frame(matrix(NA, 1, 6))
-  names(par_out) = c('dataset', 'site', 'expon_par', 'pareto_par', 'weibull_k', 'weibull_lmd')
+  par_out = as.data.frame(matrix(NA, 0, 6))
   k = 1
-  for (i in 1:length(list_elements)){
-    dat_name = list_elements[i]
-    dat = dat_list[[dat_name]]
-    site_list = unique(dat[, 1])
+  for (i in 1:length(dat_list)){
+    dat_i = read_file(paste(dat_list[i], '.csv', sep = ''))
+    site_list = unique(dat_i[, 1])
     for (j in 1:length(site_list)){
-      par_out[k, 1] = dat_name
-      par_out[k, 2] = site_list[j]
-      dat_site = dat[dat[, 1] == site_list[j], ]
+      dat_site = dat_i[dat_i[, 1] == site_list[j], ]
       dat_dbh = dat_site[, 3] / min(dat_site[, 3]) # Rescale so that min MR is 1
-      par_out[k, 3] = trunc_expon_par_est(dat_dbh, 1)
-      par_out[k, 4] = trunc_pareto_par_est(dat_dbh, 1)
-      par_out[k, 5:6] = trunc_weibull_par_est(dat_dbh, 1)
+      out = as.data.frame(matrix(NA, 1, 6))
+      out[1] = dat_list[i]
+      out[2] = site_list[j]
+      out[3] = trunc_expon_par_est(dat_dbh, 1)
+      out[4] = trunc_pareto_par_est(dat_dbh, 1)
+      out[5:6] = trunc_weibull_par_est(dat_dbh, 1)
+      par_out = rbind(par_out, out)
       k = k + 1
     }
   }
+  names(par_out) = c('dataset', 'site', 'expon_par', 'pareto_par', 'weibull_k', 'weibull_lmd')
   write.csv(par_out, out_file, row.names = F, quote = F)
 }
