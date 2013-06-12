@@ -1300,3 +1300,29 @@ def get_mr_alt(list_of_sites_and_forest_types, density_dic, data_dir = ''):
             results['f2'] = np.array(mr_list) ** 0.5 # Square-root to be consistent with dbh in raw_data
             f.writerows(results)
         f_write.close()
+
+def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sites.csv'):
+    """Obtain AICc value for the four ISDs and write to file"""
+    f = open(outfile, 'wb')
+    f_writer = csv.writer(f)    
+    pars = np.genfromtxt(par_file, dtype = "S15, S15, f8, f8, f8, f8",
+                         names = ['dat','site','expon_par','pareto_par','weibull_k','weibull_lmd'],
+                                  delimiter = ",")
+    for dat_name in dat_list:
+        dat_i = import_raw_data(dat_name + '.csv')
+        for site in np.unique(dat_i['site']):
+            dat_site = dat_i[dat_i['site'] == site]
+            S = len(np.unique(dat_site['sp']))
+            if S > cutoff:
+                par_row = pars[(pars['dat'] == dat_name) * (pars['site'] == site)]
+                expon_par, pareto_par, weibull_k, weibull_lmd = par_row['expon_par'], par_row['pareto_par'], par_row['weibull_k'], par_row['weibull_lmd']
+                AICc_list_site = AICc_ISD(dat_site, expon_par, pareto_par, weibull_k, weibull_lmd)
+                results = np.zeros((1, ), dtype = ('S15, S15, f8, f8, f8, f8'))
+                results['f0'] = dat_name
+                results['f1'] = site
+                results['f2'] = AICc_list_site[0]
+                results['f3'] = AICc_list_site[1]
+                results['f4'] = AICc_list_site[2]
+                results['f5'] = AICc_list_site[3]
+                f_writer.writerows(results)
+    f.close()

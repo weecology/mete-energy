@@ -71,19 +71,19 @@ def aic_weight_multiple(n, *AICc):
     weight = np.array(weight) / sum(np.array(weight))
     return weight
 
-def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
-    """Calculates the AICc weights for the four distributions:
+def AICc_ISD(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
+    """Calculates the AICc for the four ISDs:
     
     truncated expontial, truncated Pareto, truncated Weibull, METE.
     
     """
-    dbh_raw = dat[dat.dtype.names[2]]
-    dbh_scale = np.array(sorted(dbh_raw / min(dbh_raw)))
+    dbh_raw = dat['dbh']
+    dbh_scale = np.array(dbh_raw / min(dbh_raw))
     dbh2_scale = dbh_scale ** 2
 
     N0 = len(dbh2_scale)
     E0 = sum(dbh2_scale)
-    S0 = len(set(dat[dat.dtype.names[1]]))
+    S0 = len(set(dat['sp']))
     ll_expon = sum(np.log(xsquare_pdf(dbh2_scale, trunc_expon, expon_par, 1)))
     ll_pareto = sum(np.log(xsquare_pdf(dbh2_scale, trunc_pareto, pareto_par, 1)))
     ll_weibull = sum(np.log(xsquare_pdf(dbh2_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
@@ -99,8 +99,8 @@ def weights(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
         ll_psi += log(psi.pdf(dbh2))
     AICc_psi = AICc(3, ll_psi, N0)
     AICc_list.append(AICc_psi)
-    return aic_weight_multiple(N0, *AICc_list)
-
+    return np.array(AICc_list)
+            
 def plot_ind_hist(dat, expon_par, pareto_par, weibull_k, weibull_lmd, title, plot_obj = None, legend = False):
     """Plots the histogram of observed dbh**2, with predicted pdf curves on top.""" 
     dbh_raw = dat[dat.dtype.names[2]]
