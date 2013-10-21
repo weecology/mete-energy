@@ -381,11 +381,10 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
                         if len(sp_dbh2) > n_cutoff: 
                             par_pred.append(len(sp_dbh2) * psi.lambda2)
                             par_obs.append(1 / (sum(sp_dbh2) / len(sp_dbh2) - 1))
-                    mr_out_row.append(macroecotools.obs_pred_mse(np.array(mr_avg_obs), 
-                                                                     np.array(mr_avg_pred)))
-                    lambda_out_row.append(macroecotools.obs_pred_mse(np.array(par_obs), 
-                                                                         np.array(par_pred)))
-
+                    mr_out_row.append(macroecotools.obs_pred_mse(np.log(mr_avg_obs), 
+                                                                     np.log(mr_avg_pred)))
+                    lambda_out_row.append(macroecotools.obs_pred_mse(np.log(par_obs), 
+                                                                         np.log(par_pred)))
                 f1.writerow(mr_out_row)
                 f2.writerow(lambda_out_row)
                 
@@ -481,20 +480,17 @@ def plot_rand_test(data_dir = './data/'):
     """Plot the results obtained from species_rand_test"""
     rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
     rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
-    fig = plt.figure(figsize = (3.42, 7)) # 8.7cm single column width required by PNAS
-    ax_mr = plt.subplot(211)
-    plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ko-', markersize = 2)
+    fig = plt.figure(figsize = (7, 4)) # 8.7cm single column width required by PNAS
+    ax_mr = plt.subplot(121)
+    plt.plot(np.arange(len(rand_mr[0])), rand_mr[0], 'ko-', markersize = 2)
     ax_mr.fill_between(np.arange(len(rand_mr[0])), rand_mr[1], rand_mr[2],
                        color = '#CFCFCF', edgecolor = '#CFCFCF')
     ax_mr.axes.get_xaxis().set_ticks([])
-    y_ticks_mr = [r'$1.0$', r'$10.0$', r'$10^2$', r'$10^3$', r'$10^4$', r'$10^5$', 
-               r'$10^6$', r'$10^7$', r'$10^8$', r'$10^9$', r'$10^{10}$', r'$10^{11}$']
-    ax_mr.set_yticklabels(y_ticks_mr, fontsize = 6)
     ax_mr.set_xlabel('Plots', fontsize = 8)
-    ax_mr.set_ylabel('MSE of size-abundance relationship', fontsize = 8)
+    ax_mr.set_ylabel(r'$R^2$ of size-abundance relationship', fontsize = 8)
     
-    ax_lambda = plt.subplot(212)
-    plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ko-', markersize = 2)
+    ax_lambda = plt.subplot(122)
+    plt.plot(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ko-', markersize = 2)
     ax_lambda.fill_between(np.arange(len(rand_lambda[0])), rand_lambda[1], rand_lambda[2],
                        color = '#CFCFCF', edgecolor = '#CFCFCF')
     ax_lambda.axes.get_xaxis().set_ticks([])
@@ -506,6 +502,36 @@ def plot_rand_test(data_dir = './data/'):
 
     plt.subplots_adjust(hspace = 0.25, left = 0.25, right = 0.9, top = 0.95, bottom = 0.05)
     plt.savefig('rand_test.pdf', dpi = 400)
+
+#def plot_rand_test(data_dir = './data/'):
+    #"""Plot the results obtained from species_rand_test"""
+    #rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
+    #rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
+    #fig = plt.figure(figsize = (3.42, 7)) # 8.7cm single column width required by PNAS
+    #ax_mr = plt.subplot(211)
+    #plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ko-', markersize = 2)
+    #ax_mr.fill_between(np.arange(len(rand_mr[0])), rand_mr[1], rand_mr[2],
+                       #color = '#CFCFCF', edgecolor = '#CFCFCF')
+    #ax_mr.axes.get_xaxis().set_ticks([])
+    #y_ticks_mr = [r'$1.0$', r'$10.0$', r'$10^2$', r'$10^3$', r'$10^4$', r'$10^5$', 
+               #r'$10^6$', r'$10^7$', r'$10^8$', r'$10^9$', r'$10^{10}$', r'$10^{11}$']
+    #ax_mr.set_yticklabels(y_ticks_mr, fontsize = 6)
+    #ax_mr.set_xlabel('Plots', fontsize = 8)
+    #ax_mr.set_ylabel('MSE of size-abundance relationship', fontsize = 8)
+    
+    #ax_lambda = plt.subplot(212)
+    #plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ko-', markersize = 2)
+    #ax_lambda.fill_between(np.arange(len(rand_lambda[0])), rand_lambda[1], rand_lambda[2],
+                       #color = '#CFCFCF', edgecolor = '#CFCFCF')
+    #ax_lambda.axes.get_xaxis().set_ticks([])
+    #y_ticks_lambda = [r'$10^{-8}$', r'$10^{-7}$', r'$10^{-6}$', r'$10^{-5}$', r'$10^{-4}$', 
+                      #r'$10^{-3}$', r'$10^{-2}$', r'$0.1$', r'$1.0$', r'$10.0$']
+    #ax_lambda.set_yticklabels(y_ticks_lambda, fontsize = 6)
+    #ax_lambda.set_xlabel('Plots', fontsize = 8)
+    #ax_lambda.set_ylabel('MSE of iISD parameter', fontsize = 8)
+
+    #plt.subplots_adjust(hspace = 0.25, left = 0.25, right = 0.9, top = 0.95, bottom = 0.05)
+    #plt.savefig('rand_test.pdf', dpi = 400)
 
 def get_obs_pred_from_file(datasets, data_dir, filename):
     """Read obs and pred value from a file"""
@@ -552,7 +578,7 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
         plt.setp(axins, xticks=[], yticks=[])
     return ax
 
-def plot_obs_pred_sad(datasets, data_dir = "./data/", radius = 2, inset = False):
+def plot_obs_pred_sad(datasets, data_dir = "./data/", dest_dir = "", radius = 2, inset = False):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
     rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     if inset:
@@ -1225,6 +1251,52 @@ def plot_spp_frequency_pdf(dat, spp_name1, spp_name2, data_dir = './data/'):
 
     plt.savefig(data_dir + 'intra_dist_2spp_pdf.png', dpi = 400)
 
+def plot_fig_A5():
+    """Create a 1*2 plot comparing the empirical vs. randomized size-density relationship using BCI data"""
+    dat = import_raw_data('BCI.csv')
+    dbh_scale = np.array(dat['dbh'] / min(dat['dbh']))
+    dbh2_scale = dbh_scale ** 2
+    E0 = sum(dbh2_scale)
+    N0 = len(dbh2_scale)
+    S_list = np.unique(dat['sp'])
+    S0 = len(S_list)
+    n_list = []
+    emp_dbh2_list = []
+    rand_dbh2_list = []
+    for sp in S_list:
+        sp_dbh2 = dbh2_scale[dat['sp'] == sp]
+        n_list.append(len(sp_dbh2))
+        emp_dbh2_list.append(sum(sp_dbh2) / len(sp_dbh2))
+    np.random.shuffle(dat['sp'])
+    for sp in S_list:
+        sp_dbh2 = dbh2_scale[dat['sp'] == sp]
+        rand_dbh2_list.append(sum(sp_dbh2) / len(sp_dbh2))
+    theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+    dbh2_pred = [theta_epsilon_obj.E(n) for n in n_list]
+    
+    fig = plt.figure(figsize = (7, 3.8)) 
+    ax_emp = plt.subplot(121)
+    ax_emp.loglog(np.array(sorted(dbh2_pred, reverse = True)), np.array(sorted(n_list)), color = '#9400D3', linewidth = 2)
+    ax_emp.scatter(np.array(emp_dbh2_list), np.array(n_list), color = '#999999', marker = 'o')
+    ax_emp.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.xlabel('Species-average metabolic rate', fontsize = 8)
+    plt.ylabel('Species abundance', fontsize = 8)
+    plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(emp_dbh2_list), np.log10(dbh2_pred)),
+                 xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 7)
+    plt.title('BCI, empirical')
+    
+    ax_rand = plt.subplot(122)
+    ax_rand.loglog(np.array(sorted(dbh2_pred, reverse = True)), np.array(sorted(n_list)), color = '#9400D3', linewidth = 2)
+    ax_rand.scatter(np.array(rand_dbh2_list), np.array(n_list), color = '#999999', marker = 'o')
+    ax_rand.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.xlabel('Species-average metabolic rate', fontsize = 8)
+    plt.ylabel('Species abundance', fontsize = 8)
+    plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(rand_dbh2_list), np.log10(dbh2_pred)),
+                 xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 7)
+    plt.title('BCI, randomized')
+    
+    plt.savefig('Fig_A5.png', dpi = 400)
+ 
 def dbh_to_mass(dbh, wsg, forest_type):
     """Convert DBH to biomass based on formulas taken from Chave et al. 2005.
     
