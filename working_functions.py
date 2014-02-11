@@ -1602,69 +1602,6 @@ def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sit
                 results['f5'] = AICc_list_site[3]
                 f_writer.writerows(results)
     f.close()
-
-
-def bootstrap_rsquare(dat_name, pattern, cutoff = 9, Niter = 500):
-    """Compare the goodness of fit of the empirical data to 
-    
-    that of the boostrapped samples from the proposed METE distribution.
-    Inputs:
-    dat_name - name of study
-    pattern - one of the four predicted patterns ('SAD', 'ISD', 'SDR', or 'iISD')
-    cutoff - minimum number of species required to run - 1
-    Niter - number of bootstrap samples
-    """
-    dat = import_raw_data(dat_name + '.csv')
-    site_list = np.unique(dat['site'])
-    if pattern == 'SAD':
-        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_rad.csv')
-    elif pattern == 'ISD':
-        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_isd_dbh2.csv')
-    elif pattern == 'SDR':
-        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_avg_mr.csv')
-    elif pattern == 'iISD':
-        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_iisd_dbh2.csv')
-        
-    for site in site_list:
-        out_list = [dat_name, site]
-        dat_site = dat[dat['site'] == site]
-        S_list = set(dat_site['sp'])
-        S0 = len(S_list)
-        if S0 > cutoff:
-            N0 = len(dat_site)
-            dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
-            dbh2_scale = dbh_scale ** 2
-            E0 = sum(dbh2_scale)
-            beta = get_beta(S0, N0)
-            psi = psi_epsilon(S0, N0, E0)
-            theta = theta_epsilon(S0, N0, E0)
-            
-            dat_site_obs_pred = dat_obs_pred[dat_obs_pred['site'] == site]
-            dat_site_obs = dat_site_obs_pred['obs']
-            dat_site_pred = dat_site_obs_pred['pred']
-            
-            out_list.append(macroecotools.obs_pred_rsquare(dat_site_obs, dat_site_pred))
-            
-            for i in range(Niter):
-                if pattern == 'SAD':
-                    sample_i = sorted(mdis.trunc_logser.rvs(exp(-beta), N0, size = S0), reverse = True)
-                elif pattern == 'ISD':
-                    sample_i = sorted(psi.rvs(N0), reverse = True)
-                else:
-                    sample_i = []
-                    for sp in S_list:
-                        dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
-                        n_sp = len(dbh2_site_sp)
-                        sample_sp = theta.rvs(n_sp, n_sp)
-                        if pattern == 'SDR':
-                            sample_i.append(sum(sample_sp) / n_sp)
-                        elif pattern == 'iISD':
-                            sample_i.extend(sorted(sample_sp, reverse = True))
-                out_list.append(macroecotools.obs_pred_rsquare(sample_i, dat_site_pred))
-  
-            out_file = open(pattern + '_bootstrap_rsquare.txt', 'a')
-            print>>out_file, ",".join(str(x) for x in out_list)
-            out_file.close()                   
             
 def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical SAD to 
@@ -1695,12 +1632,12 @@ def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            out_list_rsquare.append(macroecotools.obs_pred_rsquare(dat_site_obs, dat_site_pred))
+            out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs), np.log10(dat_site_pred)))
             out_list_loglik.append(sum(np.log(mdis.trunc_logser.pmf(dat_site_obs, exp(-beta), N0))))
             
             for i in range(Niter):
                 sample_i = sorted(mdis.trunc_logser.rvs(exp(-beta), N0, size = S0), reverse = True)
-                out_list_rsquare.append(macroecotools.obs_pred_rsquare(sample_i, dat_site_pred))
+                out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i), np.log10(dat_site_pred)))
                 out_list_loglik.append(sum(np.log(mdis.trunc_logser.pmf(sample_i, exp(-beta), N0))))
   
             out_file_rsquare = open('SAD_bootstrap_rsquare.txt', 'a')
@@ -1742,12 +1679,12 @@ def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            out_list_rsquare.append(macroecotools.obs_pred_rsquare(dat_site_obs, dat_site_pred))
+            out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs), np.log10(dat_site_pred)))
             out_list_loglik.append(sum(np.log([psi.pdf(x) for x in dat_site_obs])))
             
             for i in range(Niter):
                 sample_i = sorted(psi.rvs(N0), reverse = True)
-                out_list_rsquare.append(macroecotools.obs_pred_rsquare(sample_i, dat_site_pred))
+                out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i), np.log10(dat_site_pred)))
                 out_list_loglik.append(sum(np.log([psi.pdf(x) for x in sample_i])))
   
             out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
@@ -1757,3 +1694,77 @@ def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
             out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
             print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
             out_file_loglik.close()                   
+
+def bootstrap_rsquare_loglik_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
+    """Compare the goodness of fit of the empirical SDR and iISD to 
+    
+    that of the boostrapped samples from the proposed METE distribution.
+    Inputs:
+    dat_name - name of study
+    cutoff - minimum number of species required to run - 1
+    Niter - number of bootstrap samples
+    """
+    dat = import_raw_data(dat_name + '.csv')
+    site_list = np.unique(dat['site'])
+    dat_obs_pred_sdr = import_obs_pred_data('./data/' + dat_name + '_obs_pred_avg_mr.csv')
+    dat_obs_pred_iisd = import_obs_pred_data('./data/' + dat_name + '_obs_pred_iisd_dbh2.csv')
+        
+    for site in site_list:
+        out_list_sdr_rsquare, out_list_iisd_rsquare, out_list_iisd_loglik = [dat_name, site], [dat_name, site], [dat_name, site]
+        dat_site = dat[dat['site'] == site]
+        S_list = set(dat_site['sp'])
+        S0 = len(S_list)
+        if S0 > cutoff:
+            N0 = len(dat_site)
+            dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            beta = get_beta(S0, N0)
+            psi = psi_epsilon(S0, N0, E0)
+            theta = theta_epsilon(S0, N0, E0)
+            
+            dat_site_obs_pred_sdr = dat_obs_pred_sdr[dat_obs_pred_sdr['site'] == site]
+            dat_site_obs_sdr = dat_site_obs_pred_sdr['obs']
+            dat_site_pred_sdr = dat_site_obs_pred_sdr['pred']
+            
+            dat_site_obs_pred_iisd = dat_obs_pred_iisd[dat_obs_pred_iisd['site'] == site]
+            dat_site_obs_iisd = dat_site_obs_pred_iisd['obs']
+            dat_site_pred_iisd = dat_site_obs_pred_iisd['pred']
+            
+            out_list_sdr_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_sdr), np.log10(dat_site_pred_sdr)))
+            out_list_iisd_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_iisd), np.log10(dat_site_pred_iisd)))
+            
+            loglik_obs = 0
+            for sp in S_list:
+                dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
+                n_sp = len(dbh2_site_sp)
+                loglik_obs += sum(np.log([theta.pdf(x, n_sp) for x in dbh2_site_sp]))
+            out_list_iisd_loglik.append(loglik_obs)
+            
+            for i in range(Niter):
+                sample_i_sdr = []
+                sample_i_iisd = []
+                loglik_i = 0
+                for sp in S_list:
+                    dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
+                    n_sp = len(dbh2_site_sp)
+                    sample_sp = theta.rvs(n_sp, n_sp)
+                    sample_i_sdr.append(sum(sample_sp) / n_sp)
+                    sample_i_iisd.extend(sorted(sample_sp, reverse = True))
+                    loglik_i += sum(np.log([theta.pdf(x, n_sp) for x in sample_sp]))
+                    
+                out_list_sdr_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i_sdr), np.log10(dat_site_pred_sdr)))
+                out_list_iisd_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i_iisd), np.log10(dat_site_pred_iisd)))
+                out_list_iisd_loglik.append(loglik_i)
+
+            out_file_sdr_rsquare = open('SDR_bootstrap_rsquare.txt', 'a')
+            print>>out_file_sdr_rsquare, ",".join(str(x) for x in out_list_sdr_rsquare)
+            out_file_sdr_rsquare.close()
+            
+            out_file_iisd_rsquare = open('iISD_bootstrap_rsquare.txt', 'a')
+            print>>out_file_iisd_rsquare, ",".join(str(x) for x in out_list_iisd_rsquare)
+            out_file_iisd_rsquare.close()
+            
+            out_file_iisd_loglik = open('iISD_bootstrap_loglik.txt', 'a')
+            print>>out_file_iisd_loglik, ",".join(str(x) for x in  out_list_iisd_loglik)
+            out_file_iisd_loglik.close()                   
