@@ -11,10 +11,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
 from mete import *
 from mete_sads import hist_mete_r2
+from mete_distributions import *
 import macroecotools
 import macroeco_distributions as mdis
-from fit_other_dist import *
-from math import exp
+from math import exp, log
 from scipy.stats.mstats import mquantiles
 from scipy.stats import ks_2samp
 
@@ -96,6 +96,19 @@ def get_mete_pred_dbh2(dbh2_scale, S0, N0, E0):
     psi = psi_epsilon(S0, N0, E0)
     scaled_rank = [(x + 0.5) / len(dbh2_scale) for x in range(len(dbh2_scale))]
     pred_dbh2 = [psi.ppf(x) for x in scaled_rank]
+    return np.array(pred_dbh2)
+
+def get_iisd_pred_dbh2(dbh2_scale, E0, iisd_par):
+    """Compute the individual metabolic rate (size) predicted by METE 
+    
+    for each individual in one species from the intraspecific individual size distribution
+    given scaled dbh ** 2, E0, and the predicted parameter 
+    for the exponential distribution (iISD).
+    
+    """
+    scaled_rank = [(x + 0.5) / len(dbh2_scale) for x in range(len(dbh2_scale))]
+    m = exp(- iisd_par)
+    pred_dbh2 = [log(m - x * (m - m ** E0)) / (- iisd_par) for x in scaled_rank]
     return np.array(pred_dbh2)
 
 def get_obs_cdf(dat):
@@ -277,7 +290,46 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
             f2.writerows(results2)
     f1_write.close()
     f2_write.close()
+
+def get_obs_pred_iisd(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+    """Compare the predicted and empirical individual dbh^2 from  
     
+    intra-specific energy distribution for each species and get results in csv files.
+    Keyword arguments:
+    raw_data : numpy structured array with 3 columns: 'site','sp','dbh'
+    dataset_name : short code that will indicate the name of the dataset in
+                    the output file names
+    data_dir : directory in which to store output
+    cutoff : minimum number of species required to run - 1.
+    
+    """
+    usites = np.sort(list(set(raw_data["site"])))
+    f1_write = open(data_dir + dataset_name + '_obs_pred_iisd_dbh2.csv', 'wb')
+    f1 = csv.writer(f1_write)
+    
+    for site in usites:
+        subdat = raw_data[raw_data["site"] == site]
+        dbh_raw = subdat[subdat.dtype.names[2]]
+        dbh_scale = np.array(dbh_raw / min(dbh_raw))
+        dbh2_scale = dbh_scale ** 2
+        E0 = sum(dbh2_scale)
+        N0 = len(dbh2_scale)
+        S_list = set(subdat[subdat.dtype.names[1]])
+        S0 = len(S_list)
+        if S0 > cutoff:
+            psi = psi_epsilon(S0, N0, E0)
+            for sp in S_list:
+                iisd_obs = sorted(dbh2_scale[subdat[subdat.dtype.names[1]] == sp])
+                n = len(iisd_obs)
+                iisd_pred = get_iisd_pred_dbh2(iisd_obs, E0, n * psi.lambda2)
+                results = np.zeros((len(iisd_obs), ), dtype = ('S15, f8, f8'))
+                results['f0'] = np.array([site] * len(iisd_obs))
+                results['f1'] = np.array(iisd_obs)
+                results['f2'] = np.array(iisd_pred)
+                f1.writerows(results)
+                
+    f1_write.close()
+
 def ks_test_sp(sp_dbh2, Nsim = 1000, p = 0.05):
     """Kolmogorov-Smirnov test to evaluate if dbh2 of one species is significantly 
     
@@ -700,6 +752,59 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
     plt.savefig('four_patterns.pdf', dpi = 400)    
 
+def plot_four_patterns_ver2(datasets, data_dir = "./data/", radius_sad = 2, radius_isd = 2, 
+                       radius_mr = 2, radius_iisd = 2, inset = False):
+    """Plot predicted versus observed data for 4 patterns (rank abundance for SAD, 
+    
+    individual body size for ISD and iISD, average body size for SDR) as subplots in a single figure.
+    
+    """
+    fig = plt.figure(figsize = (7, 7))
+    
+    ax = plt.subplot(221)
+    rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
+    if inset:
+        fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax, inset = True, sites = rad_sites)
+    else:
+        fig1 = plot_obs_pred(rad_obs, rad_pred, radius_sad, 1, ax = ax)
+    fig1.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+    fig1.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
+    fig1.set_ylabel('Observed abundance', labelpad = 4, size = 8)
+
+    ax = plt.subplot(222)
+    isd_sites, isd_obs, isd_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_dbh2.csv')
+    if inset:
+        fig2 = plot_obs_pred(isd_obs, isd_pred, radius_isd, 1, ax = ax, inset = True, sites = isd_sites)
+    else:
+        fig2 = plot_obs_pred(isd_obs, isd_pred, radius_isd, 1, ax = ax)
+    fig2.annotate('(B)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+    fig2.set_xlabel(r'Predicted $DBH^2$ from ISD', labelpad = 4, size = 8)
+    fig2.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
+
+    ax = plt.subplot(223)
+    mr_sites, mr_obs, mr_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_avg_mr.csv')
+    if inset:
+        fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax, inset = True, sites = mr_sites)
+    else:
+        fig3 = plot_obs_pred(mr_obs, mr_pred, radius_mr, 1, ax = ax)
+    fig3.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+    fig3.set_xlabel('Predicted species-average metabolic rate', labelpad = 4, size = 8)
+    fig3.set_ylabel('Observed species-average metabolic rate', labelpad = 4, size = 8)
+
+    ax = plt.subplot(224)
+    iisd_sites, iisd_obs, iisd_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_iisd_dbh2.csv')
+    if inset:
+        fig4 = plot_obs_pred(iisd_obs, iisd_pred, radius_iisd, 1, ax = ax, inset = True, sites = iisd_sites)
+    else:
+        fig4 = plot_obs_pred(iisd_obs, iisd_pred, radius_iisd, 1, ax = ax)
+    fig4.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+    fig4.set_xlabel(r'Predicted $DBH^2$ from iISD', labelpad = 4, size = 8)
+    fig4.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
+
+    plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
+    #plt.savefig('four_patterns_ver2.pdf', dpi = 400)
+    plt.savefig('four_patterns_ver2.tiff', format = 'tiff', dpi = 300)
+    
 def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sad = 2, 
                               radius_freq = 0.05, radius_mr = 2, radius_par = 2):
     """Create the four-pattern figure for each plot separately and save all figures into a single pdf."""
@@ -845,6 +950,104 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 plt.savefig(pp, format = 'pdf', dpi = 400)
     pp.close()
 
+def plot_four_patterns_single_ver3(datasets, outfile, data_dir = "./data/", radius_par = 2, title = True,
+                                   bin_size = 1.7, cutoff = 9, n_cutoff = 4):
+    """Version three of four-pattern figure at plot level (consist with plot_four_patterns_ver2)"""
+    pp = PdfPages(outfile)
+    for dataset in datasets:
+        dat_rad = import_obs_pred_data(data_dir + dataset + '_obs_pred_rad.csv')
+        dat_raw = import_raw_data(dataset + '.csv')
+        dat_isd = import_obs_pred_data(data_dir + dataset + '_obs_pred_isd_dbh2.csv')
+        dat_mr = import_obs_pred_data(data_dir + dataset + '_obs_pred_avg_mr.csv')
+        dat_iisd = import_obs_pred_data(data_dir + dataset + '_obs_pred_iisd_dbh2.csv')
+        sites = np.sort(list(set(dat_rad['site'])))
+        for site in sites:
+            dat_raw_site = dat_raw[dat_raw['site'] == site]
+            sp_list = set(dat_raw_site['sp'])
+            S0 = len(sp_list)
+            if S0 > cutoff:
+                dat_rad_site = dat_rad[dat_rad['site'] == site]
+                dat_isd_site = dat_isd[dat_isd['site'] == site]
+                dat_mr_site = dat_mr[dat_mr['site'] == site]
+                dat_iisd_site = dat_iisd[dat_iisd['site'] == site]
+
+                obs = dat_rad_site['obs']
+                pred = dat_rad_site['pred']
+                rank_obs, relab_obs = macroecotools.get_rad_data(obs)
+                rank_pred, relab_pred = macroecotools.get_rad_data(pred)
+                
+                dbh_raw_site = dat_raw_site['dbh']
+                dbh_scale_site = np.array(dbh_raw_site / min(dbh_raw_site))
+                dbh2_scale_site = dbh_scale_site ** 2
+                E0 = sum(dbh2_scale_site)
+                N0 = len(dbh2_scale_site)
+                num_bin = int(ceil(log(max(dbh2_scale_site)) / log(bin_size)))
+                emp_pdf = []
+                for i in range(num_bin):
+                    count = len(dbh2_scale_site[(dbh2_scale_site < bin_size ** (i + 1)) & (dbh2_scale_site >= bin_size ** i)])
+                    emp_pdf.append(count / N0 / (bin_size ** i * (bin_size - 1)))
+                psi = psi_epsilon(S0, N0, E0)
+                psi_pdf = [float(psi.pdf(x)) for x in np.arange(1, ceil(max(dbh2_scale_site)) + 1)]
+                
+                theta_epsilon_obj = theta_epsilon(S0, N0, E0)
+                dbh2_obs = []
+                n_obs = []
+                for sp in sp_list:
+                    dat_sp = dbh2_scale_site[dat_raw_site['sp'] == sp]
+                    n_obs.append(len(dat_sp))
+                    dbh2_obs.append(sum(dat_sp) / len(dat_sp))
+                n_list = [int(x) for x in np.exp(np.arange(log(min(n_obs)), log(max(n_obs)), 0.1))]
+                dbh2_pred = [theta_epsilon_obj.E(n) for n in n_list]
+     
+                fig = plt.figure(figsize = (7, 7))
+                ax = plt.subplot(221)
+                ax.semilogy(rank_obs, relab_obs, 'o', markerfacecolor='none', markersize=6, 
+                                  markeredgecolor='#999999', markeredgewidth=1)
+                ax.semilogy(rank_pred, relab_pred, '-', color='#9400D3', linewidth=2)
+                ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+                plt.xlabel('Rank', fontsize = 8)
+                plt.ylabel('Relative abundance', fontsize = 8)
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
+                             xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                plt.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+                
+                ax = plt.subplot(222)
+                ax.loglog(np.arange(1, ceil(max(dbh2_scale_site)) + 1), psi_pdf, '#9400D3', linewidth = 2)
+                ax.bar(bin_size ** np.array(range(num_bin)), emp_pdf, color = '#d6d6d6', 
+                       width = 0.4 * bin_size ** np.array(range(num_bin)))
+                plt.ylim((max(min(emp_pdf), 10 ** -10), 1))
+                ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+                plt.xlabel(r'$DBH^2$', fontsize = 8)
+                plt.ylabel('Frequency', fontsize = 8)
+                obs = dat_isd_site['obs']
+                pred = dat_isd_site['pred']
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred)),
+                             xy = (0.72, 0.9), xycoords = 'axes fraction', fontsize = 7)
+                plt.annotate('(B)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+ 
+                ax = plt.subplot(223)
+                ax.loglog(np.array(dbh2_pred), np.array(n_list), color = '#9400D3', linewidth = 2)
+                ax.scatter(dbh2_obs, n_obs, color = '#999999', marker = 'o')
+                ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+                plt.xlabel('Species-average metabolic rate', fontsize = 8)
+                plt.ylabel('Species abundance', fontsize = 8)
+                obs = dat_mr_site['obs']
+                pred = dat_mr_site['pred']
+                plt.annotate(r'$R^2$ = %0.2f' %macroecotools.obs_pred_rsquare(np.log10(obs[(obs != 0) * (pred != 0)]), np.log10(pred[(obs != 0) * (pred != 0)])),
+                             xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 7)
+                plt.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+                
+                ax = plt.subplot(224)
+                fig4 = plot_obs_pred(dat_iisd_site['obs'], dat_iisd_site['pred'], radius_par, 1, ax = ax)
+                fig4.set_xlabel(r'Predicted $DBH^2$ from iISD', labelpad = 4, size = 8)
+                fig4.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
+                fig4.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+                
+                plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
+                if title:
+                    plt.suptitle(dataset + ',' + site)
+                plt.savefig(pp, format = 'pdf', dpi = 200)
+    pp.close()
 
 def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
@@ -989,7 +1192,7 @@ def plot_fig1(output_dir = ""):
     x_array = np.arange(1, ceil(max(hp_dbh2)) + 1)
     plot_obj = plt.subplot(2, 2, 4)
     p_mete, = plot_obj.loglog(x_array, exp_dist(x_array, lam_pred), '#9400D3', linewidth = 2, label = 'METE')
-    p_mle, = plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
+    #p_mle, = plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
     plot_obj.bar(1.7 ** np.array(range(hp_num_bin)), hp_emp_pdf, color = '#d6d6d6', 
         width = 0.4 * 1.7 ** np.array(range(hp_num_bin)))
     plt.ylim((max(min(hp_emp_pdf), 10 ** -10), 1))
@@ -997,10 +1200,11 @@ def plot_fig1(output_dir = ""):
     plt.xlabel(r'$DBH^2$', fontsize = 8)
     plt.ylabel('Probability Density', fontsize = 8)
     plot_obj.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
-    plt.legend([p_mete, p_mle], ['METE parameter: '+str(round(lam_pred, 4)), 'MLE parameter: '+str(round(lam_est, 4))],
-               loc = 1, prop = {'size': 6})
+    #plt.legend([p_mete, p_mle], ['METE parameter: '+str(round(lam_pred, 4)), 'MLE parameter: '+str(round(lam_est, 4))],
+    #           loc = 1, prop = {'size': 6})
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
-    plt.savefig(output_dir + 'fig1.pdf', dpi = 400)
+    #plt.savefig(output_dir + 'fig1.pdf', dpi = 400)
+    plt.savefig(output_dir + 'fig1.tiff', format = 'tiff', dpi = 300)
 
 def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
     """Create a csv file with AICc weights of the four distributions"""
@@ -1398,3 +1602,112 @@ def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sit
                 results['f5'] = AICc_list_site[3]
                 f_writer.writerows(results)
     f.close()
+
+
+def bootstrap_rsquare(dat_name, pattern, cutoff = 9, Niter = 500):
+    """Compare the goodness of fit of the empirical data to 
+    
+    that of the boostrapped samples from the proposed METE distribution.
+    Inputs:
+    dat_name - name of study
+    pattern - one of the four predicted patterns ('SAD', 'ISD', 'SDR', or 'iISD')
+    cutoff - minimum number of species required to run - 1
+    Niter - number of bootstrap samples
+    """
+    dat = import_raw_data(dat_name + '.csv')
+    site_list = np.unique(dat['site'])
+    if pattern == 'SAD':
+        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_rad.csv')
+    elif pattern == 'ISD':
+        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_isd_dbh2.csv')
+    elif pattern == 'SDR':
+        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_avg_mr.csv')
+    elif pattern == 'iISD':
+        dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_iisd_dbh2.csv')
+        
+    for site in site_list:
+        out_list = [dat_name, site]
+        dat_site = dat[dat['site'] == site]
+        S_list = set(dat_site['sp'])
+        S0 = len(S_list)
+        if S0 > cutoff:
+            N0 = len(dat_site)
+            dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            beta = get_beta(S0, N0)
+            psi = psi_epsilon(S0, N0, E0)
+            theta = theta_epsilon(S0, N0, E0)
+            
+            dat_site_obs_pred = dat_obs_pred[dat_obs_pred['site'] == site]
+            dat_site_obs = dat_site_obs_pred['obs']
+            dat_site_pred = dat_site_obs_pred['pred']
+            
+            out_list.append(macroecotools.obs_pred_rsquare(dat_site_obs, dat_site_pred))
+            
+            for i in range(Niter):
+                if pattern == 'SAD':
+                    sample_i = sorted(mdis.trunc_logser.rvs(exp(-beta), N0, size = S0), reverse = True)
+                elif pattern == 'ISD':
+                    sample_i = sorted(psi.rvs(N0), reverse = True)
+                else:
+                    sample_i = []
+                    for sp in S_list:
+                        dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
+                        n_sp = len(dbh2_site_sp)
+                        sample_sp = theta.rvs(n_sp, n_sp)
+                        if pattern == 'SDR':
+                            sample_i.append(sum(sample_sp) / n_sp)
+                        elif pattern == 'iISD':
+                            sample_i.extend(sorted(sample_sp, reverse = True))
+                out_list.append(macroecotools.obs_pred_rsquare(sample_i, dat_site_pred))
+  
+            out_file = open(pattern + '_bootstrap_rsquare.txt', 'a')
+            print>>out_file, ",".join(str(x) for x in out_list)
+            out_file.close()                   
+            
+def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
+    """Compare the goodness of fit of the empirical data to 
+    
+    that of the boostrapped samples from the proposed METE distribution.
+    Inputs:
+    dat_name - name of study
+    pattern - one of the four predicted patterns ('SAD', 'ISD', 'SDR', or 'iISD')
+    cutoff - minimum number of species required to run - 1
+    Niter - number of bootstrap samples
+    """
+    dat = import_raw_data(dat_name + '.csv')
+    site_list = np.unique(dat['site'])
+    dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_rad.csv')
+        
+    for site in site_list:
+        out_list_rsquare, out_list_loglik = [dat_name, site], [dat_name, site]
+        dat_site = dat[dat['site'] == site]
+        S_list = set(dat_site['sp'])
+        S0 = len(S_list)
+        if S0 > cutoff:
+            N0 = len(dat_site)
+            dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            beta = get_beta(S0, N0)
+            
+            dat_site_obs_pred = dat_obs_pred[dat_obs_pred['site'] == site]
+            dat_site_obs = dat_site_obs_pred['obs']
+            dat_site_pred = dat_site_obs_pred['pred']
+            
+            out_list_rsquare.append(macroecotools.obs_pred_rsquare(dat_site_obs, dat_site_pred))
+            out_list_loglik.append(sum(np.log(mdis.trunc_logser.pmf(dat_site_obs, exp(-beta), N0))))
+            
+            for i in range(Niter):
+                sample_i = sorted(mdis.trunc_logser.rvs(exp(-beta), N0, size = S0), reverse = True)
+                out_list_rsquare.append(macroecotools.obs_pred_rsquare(sample_i, dat_site_pred))
+                out_list_loglik.append(sum(np.log(mdis.trunc_logser.pmf(sample_i, exp(-beta), N0))))
+  
+            out_file_rsquare = open('SAD_bootstrap_rsquare.txt', 'a')
+            print>>out_file_rsquare, ",".join(str(x) for x in out_list_rsquare)
+            out_file_rsquare.close()
+            
+            out_file_loglik = open('SAD_bootstrap_loglik.txt', 'a')
+            print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
+            out_file_loglik.close()
