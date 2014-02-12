@@ -1750,7 +1750,7 @@ def bootstrap_rsquare_loglik_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
                     n_sp = len(dbh2_site_sp)
                     sample_sp = theta.rvs(n_sp, n_sp)
                     sample_i_sdr.append(sum(sample_sp) / n_sp)
-                    sample_i_iisd.extend(sorted(sample_sp, reverse = True))
+                    sample_i_iisd.extend(sorted(sample_sp))
                     loglik_i += sum(np.log([theta.pdf(x, n_sp) for x in sample_sp]))
                     
                 out_list_sdr_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i_sdr), np.log10(dat_site_pred_sdr)))
