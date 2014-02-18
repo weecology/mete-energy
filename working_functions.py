@@ -17,6 +17,8 @@ import macroeco_distributions as mdis
 from math import exp, log
 from scipy.stats.mstats import mquantiles
 from scipy.stats import ks_2samp
+import multiprocessing
+import math
 
 def import_raw_data(input_filename):
     data = np.genfromtxt(input_filename, dtype = "S15, S25, f8", skiprows = 1, 
@@ -1648,10 +1650,20 @@ def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
             print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
             out_file_loglik.close()
 
+def get_rsquare_loglik_sample(psi):
+    """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
+    np.random.seed()
+    # Generate one hundred random numbers at a time
+    return psi.rvs(100)
+
 def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical ISD to 
     
     that of the boostrapped samples from the proposed METE distribution.
+    This function can be very slow for large dataset thus parallel computing 
+    is adopted inside the function for speed.
+    Note that if parallel computing is not adopted, or if it is implemented outside
+    the function, psi_epsilon.ppf() can cause memory leak.
     Inputs:
     dat_name - name of study
     cutoff - minimum number of species required to run - 1
@@ -1682,11 +1694,21 @@ def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
             out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs), np.log10(dat_site_pred)))
             out_list_loglik.append(sum(np.log([psi.pdf(x) for x in dat_site_obs])))
             
-            for i in range(Niter):
-                sample_i = sorted(psi.rvs(N0), reverse = True)
+            num_pools = 8  # Assuming that 8 pools are to be created
+            for i in xrange(Niter):
+                sample_i = []
+                while len(sample_i) < N0:
+                    pool = multiprocessing.Pool(num_pools)
+                    subsample_list = pool.map(get_rsquare_loglik_sample, [psi for j in xrange(num_pools)])
+                    for subsample in subsample_list:
+                        sample_i.extend(subsample)
+                    pool.close()
+                    pool.join()
+                sample_i = sample_i[:N0]
+                sample_i = sorted(sample_i)
                 out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i), np.log10(dat_site_pred)))
                 out_list_loglik.append(sum(np.log([psi.pdf(x) for x in sample_i])))
-  
+                   
             out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
             print>>out_file_rsquare, ",".join(str(x) for x in out_list_rsquare)
             out_file_rsquare.close()
