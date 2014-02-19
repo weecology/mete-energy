@@ -1605,7 +1605,15 @@ def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sit
                 f_writer.writerows(results)
     f.close()
             
-def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
+def get_rsquare_loglik_ks_sample_sad(obs, pred, p, upper_bound):
+    """Function that returns the three statistics for sample"""
+    dat_rsquare = macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))
+    dat_loglik = sum(np.log([mdis.trunc_logser.pmf(x, p, upper_bound) for x in obs]))
+    emp_cdf = macroecotools.get_emp_cdf(obs)
+    dat_ks = max(abs(emp_cdf - np.array([mdis.trunc_logser.cdf(x, p, upper_bound) for x in obs])))
+    return dat_rsquare, dat_loglik, dat_ks
+
+def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical SAD to 
     
     that of the boostrapped samples from the proposed METE distribution.
@@ -1619,7 +1627,7 @@ def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
     dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_rad.csv')
         
     for site in site_list:
-        out_list_rsquare, out_list_loglik = [dat_name, site], [dat_name, site]
+        out_list_rsquare, out_list_loglik, out_list_ks = [dat_name, site], [dat_name, site], [dat_name, site]
         dat_site = dat[dat['site'] == site]
         S_list = set(dat_site['sp'])
         S0 = len(S_list)
@@ -1634,13 +1642,19 @@ def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs), np.log10(dat_site_pred)))
-            out_list_loglik.append(sum(np.log(mdis.trunc_logser.pmf(dat_site_obs, exp(-beta), N0))))
+            emp_rsquare, emp_loglik, emp_ks = \
+                       get_rsquare_loglik_ks_sample_sad(dat_site_obs, dat_site_pred, exp(-beta), N0)
+            out_list_rsquare.append(emp_rsquare)
+            out_list_loglik.append(emp_loglik)
+            out_list_ks.append(emp_ks)
             
             for i in range(Niter):
                 sample_i = sorted(mdis.trunc_logser.rvs(exp(-beta), N0, size = S0), reverse = True)
-                out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i), np.log10(dat_site_pred)))
-                out_list_loglik.append(sum(np.log(mdis.trunc_logser.pmf(sample_i, exp(-beta), N0))))
+                sample_rsquare, sample_loglik, sample_ks = \
+                              get_rsquare_loglik_ks_sample_sad(sample_i, dat_site_pred, exp(-beta), N0)
+                out_list_rsquare.append(sample_rsquare)
+                out_list_loglik.append(sample_loglik)
+                out_list_ks.append(sample_ks)
   
             out_file_rsquare = open('SAD_bootstrap_rsquare.txt', 'a')
             print>>out_file_rsquare, ",".join(str(x) for x in out_list_rsquare)
@@ -1649,6 +1663,10 @@ def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
             out_file_loglik = open('SAD_bootstrap_loglik.txt', 'a')
             print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
             out_file_loglik.close()
+            
+            out_file_ks = open('SAD_bootstrap_ks.txt', 'a')
+            print>>out_file_ks, ",".join(str(x) for x in out_list_ks)
+            out_file_ks.close()
 
 def generate_isd_sample(psi):
     """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
@@ -1656,12 +1674,12 @@ def generate_isd_sample(psi):
     # Generate one hundred random numbers at a time
     return psi.rvs(100)
 
-def get_rsquare_loglik_ks_sample(obs, pred, psi):
+def get_rsquare_loglik_ks_sample_isd(obs, pred, psi):
     """Function that returns the three statistics for sample"""
     dat_rsquare = macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))
     dat_loglik = sum(np.log([psi.pdf(x) for x in obs]))
     emp_cdf = macroecotools.get_emp_cdf(obs)
-    dat_ks = max(emp_cdf - np.array([psi.cdf(x) for x in obs]))
+    dat_ks = max(abs(emp_cdf - np.array([psi.cdf(x) for x in obs])))
     return dat_rsquare, dat_loglik, dat_ks
 
 def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
@@ -1698,7 +1716,7 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            emp_rsquare, emp_loglik, emp_ks = get_rsquare_loglik_ks_sample(dat_site_obs, dat_site_pred, psi)
+            emp_rsquare, emp_loglik, emp_ks = get_rsquare_loglik_ks_sample_isd(dat_site_obs, dat_site_pred, psi)
             
             out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
             print>>out_file_rsquare, ",".join([dat_name, site, str(emp_rsquare)]),
@@ -1724,7 +1742,7 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
                     pool.join()
                 sample_i = sample_i[:N0]
                 sample_i = sorted(sample_i)
-                sample_rsquare, sample_loglik, sample_ks = get_rsquare_loglik_ks_sample(sample_i, dat_site_pred, psi)
+                sample_rsquare, sample_loglik, sample_ks = get_rsquare_loglik_ks_sample_isd(sample_i, dat_site_pred, psi)
                 
                 out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
                 print>>out_file_rsquare, "".join([',', str(sample_rsquare)]), 
@@ -1750,7 +1768,7 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             print>>out_file_ks, '\t'
             out_file_ks.close()               
 
-def bootstrap_rsquare_loglik_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
+def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical SDR and iISD to 
     
     that of the boostrapped samples from the proposed METE distribution.
@@ -1765,7 +1783,8 @@ def bootstrap_rsquare_loglik_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     dat_obs_pred_iisd = import_obs_pred_data('./data/' + dat_name + '_obs_pred_iisd_dbh2.csv')
         
     for site in site_list:
-        out_list_sdr_rsquare, out_list_iisd_rsquare, out_list_iisd_loglik = [dat_name, site], [dat_name, site], [dat_name, site]
+        out_list_sdr_rsquare, out_list_iisd_rsquare, out_list_iisd_loglik, out_list_iisd_ks = \
+                            [dat_name, site], [dat_name, site], [dat_name, site], [dat_name, site]
         dat_site = dat[dat['site'] == site]
         S_list = set(dat_site['sp'])
         S0 = len(S_list)
