@@ -1650,13 +1650,21 @@ def bootstrap_rsquare_loglik_SAD(dat_name, cutoff = 9, Niter = 500):
             print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
             out_file_loglik.close()
 
-def get_rsquare_loglik_sample(psi):
+def generate_isd_sample(psi):
     """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
     np.random.seed()
     # Generate one hundred random numbers at a time
     return psi.rvs(100)
 
-def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
+def get_rsquare_loglik_ks_sample(obs, pred, psi):
+    """Function that returns the three statistics for sample"""
+    dat_rsquare = macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))
+    dat_loglik = sum(np.log([psi.pdf(x) for x in obs]))
+    emp_cdf = macroecotools.get_emp_cdf(obs)
+    dat_ks = max(emp_cdf - np.array([psi.cdf(x) for x in obs]))
+    return dat_rsquare, dat_loglik, dat_ks
+
+def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical ISD to 
     
     that of the boostrapped samples from the proposed METE distribution.
@@ -1674,7 +1682,6 @@ def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
     dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_isd_dbh2.csv')
         
     for site in site_list:
-        out_list_rsquare, out_list_loglik = [dat_name, site], [dat_name, site]
         dat_site = dat[dat['site'] == site]
         S_list = set(dat_site['sp'])
         S0 = len(S_list)
@@ -1691,31 +1698,57 @@ def bootstrap_rsquare_loglik_ISD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs), np.log10(dat_site_pred)))
-            out_list_loglik.append(sum(np.log([psi.pdf(x) for x in dat_site_obs])))
+            emp_rsquare, emp_loglik, emp_ks = get_rsquare_loglik_ks_sample(dat_site_obs, dat_site_pred, psi)
+            
+            out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
+            print>>out_file_rsquare, ",".join([dat_name, site, str(emp_rsquare)]),
+            out_file_rsquare.close()
+            
+            out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
+            print>>out_file_loglik, ",".join([dat_name, site, str(emp_loglik)]),
+            out_file_loglik.close()
+            
+            out_file_ks = open('ISD_bootstrap_ks.txt', 'a')
+            print>>out_file_ks, ",".join([dat_name, site, str(emp_ks)]),
+            out_file_ks.close()
             
             num_pools = 8  # Assuming that 8 pools are to be created
             for i in xrange(Niter):
                 sample_i = []
                 while len(sample_i) < N0:
                     pool = multiprocessing.Pool(num_pools)
-                    subsample_list = pool.map(get_rsquare_loglik_sample, [psi for j in xrange(num_pools)])
+                    subsample_list = pool.map(generate_isd_sample, [psi for j in xrange(num_pools)])
                     for subsample in subsample_list:
                         sample_i.extend(subsample)
                     pool.close()
                     pool.join()
                 sample_i = sample_i[:N0]
                 sample_i = sorted(sample_i)
-                out_list_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i), np.log10(dat_site_pred)))
-                out_list_loglik.append(sum(np.log([psi.pdf(x) for x in sample_i])))
-                   
+                sample_rsquare, sample_loglik, sample_ks = get_rsquare_loglik_ks_sample(sample_i, dat_site_pred, psi)
+                
+                out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
+                print>>out_file_rsquare, "".join([',', str(sample_rsquare)]), 
+                out_file_rsquare.close()
+                
+                out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
+                print>>out_file_loglik, "".join([',', str(sample_loglik)]), 
+                out_file_loglik.close()
+                
+                out_file_ks = open('ISD_bootstrap_ks.txt', 'a')
+                print>>out_file_ks, "".join([',', str(sample_ks)]), 
+                out_file_ks.close()
+            
             out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
-            print>>out_file_rsquare, ",".join(str(x) for x in out_list_rsquare)
+            print>>out_file_rsquare, '\t'
             out_file_rsquare.close()
             
             out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
-            print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
-            out_file_loglik.close()                   
+            print>>out_file_loglik, '\t'
+            out_file_loglik.close()
+            
+            out_file_ks = open('ISD_bootstrap_ks.txt', 'a')
+            print>>out_file_ks, '\t'
+            out_file_ks.close()               
 
 def bootstrap_rsquare_loglik_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical SDR and iISD to 
