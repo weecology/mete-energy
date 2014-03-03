@@ -15,6 +15,7 @@ from mete_distributions import *
 import macroecotools
 import macroeco_distributions as mdis
 from math import exp, log
+import scipy
 from scipy.stats.mstats import mquantiles
 from scipy.stats import ks_2samp
 import multiprocessing
@@ -1605,7 +1606,7 @@ def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sit
                 f_writer.writerows(results)
     f.close()
             
-def get_rsquare_loglik_ks_sample_sad(obs, pred, p, upper_bound):
+def get_sample_stats_sad(obs, pred, p, upper_bound):
     """Function that returns the three statistics for sample"""
     dat_rsquare = macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))
     dat_loglik = sum(np.log([mdis.trunc_logser.pmf(x, p, upper_bound) for x in obs]))
@@ -1642,16 +1643,14 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            emp_rsquare, emp_loglik, emp_ks = \
-                       get_rsquare_loglik_ks_sample_sad(dat_site_obs, dat_site_pred, exp(-beta), N0)
+            emp_rsquare, emp_loglik, emp_ks = get_sample_stats_sad(dat_site_obs, dat_site_pred, exp(-beta), N0)
             out_list_rsquare.append(emp_rsquare)
             out_list_loglik.append(emp_loglik)
             out_list_ks.append(emp_ks)
             
             for i in range(Niter):
                 sample_i = sorted(mdis.trunc_logser.rvs(exp(-beta), N0, size = S0), reverse = True)
-                sample_rsquare, sample_loglik, sample_ks = \
-                              get_rsquare_loglik_ks_sample_sad(sample_i, dat_site_pred, exp(-beta), N0)
+                sample_rsquare, sample_loglik, sample_ks = get_sample_stats_sad(sample_i, dat_site_pred, exp(-beta), N0)
                 out_list_rsquare.append(sample_rsquare)
                 out_list_loglik.append(sample_loglik)
                 out_list_ks.append(sample_ks)
@@ -1671,16 +1670,16 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
 def generate_isd_sample(psi):
     """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
     np.random.seed()
+    rand_cdf = scipy.stats.uniform.rvs(size = 100)
+    rand_sample = [psi.ppf(x) for x in rand_cdf]
     # Generate one hundred random numbers at a time
-    return psi.rvs(100)
+    return rand_cdf, rand_sample
 
-def get_rsquare_loglik_ks_sample_isd(obs, pred, psi):
+def get_sample_stats_isd(obs, pred, psi):
     """Function that returns the three statistics for sample"""
     dat_rsquare = macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))
     dat_loglik = sum(np.log([psi.pdf(x) for x in obs]))
-    emp_cdf = macroecotools.get_emp_cdf(obs)
-    dat_ks = max(abs(emp_cdf - np.array([psi.cdf(x) for x in obs])))
-    return dat_rsquare, dat_loglik, dat_ks
+    return dat_rsquare, dat_loglik
 
 def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical ISD to 
@@ -1708,15 +1707,17 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
             dbh2_scale = dbh_scale ** 2
             E0 = sum(dbh2_scale)
-            beta = get_beta(S0, N0)
             psi = psi_epsilon(S0, N0, E0)
-            theta = theta_epsilon(S0, N0, E0)
             
             dat_site_obs_pred = dat_obs_pred[dat_obs_pred['site'] == site]
             dat_site_obs = dat_site_obs_pred['obs']
             dat_site_pred = dat_site_obs_pred['pred']
             
-            emp_rsquare, emp_loglik, emp_ks = get_rsquare_loglik_ks_sample_isd(dat_site_obs, dat_site_pred, psi)
+            emp_rsquare, emp_loglik = get_sample_stats_isd(dat_site_obs, dat_site_pred, psi)
+            emp_cdf = macroecotools.get_emp_cdf(dat_site_obs)
+            emp_ks = max(abs(emp_cdf - np.array([psi.cdf(x) for x in dat_site_obs])))
+            
+            del dbh_scale, dbh2_scale, dat_site_obs 
             
             out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
             print>>out_file_rsquare, ",".join([dat_name, site, str(emp_rsquare)]),
@@ -1733,16 +1734,20 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             num_pools = 8  # Assuming that 8 pools are to be created
             for i in xrange(Niter):
                 sample_i = []
+                cdf_i = []
                 while len(sample_i) < N0:
                     pool = multiprocessing.Pool(num_pools)
-                    subsample_list = pool.map(generate_isd_sample, [psi for j in xrange(num_pools)])
-                    for subsample in subsample_list:
-                        sample_i.extend(subsample)
+                    out_sample = pool.map(generate_isd_sample, [psi for j in xrange(num_pools)])
+                    for combo in out_sample:
+                        cdf_sublist, sample_sublist = combo
+                        sample_i.extend(sample_sublist)
+                        cdf_i.extend(cdf_sublist)
                     pool.close()
                     pool.join()
-                sample_i = sample_i[:N0]
-                sample_i = sorted(sample_i)
-                sample_rsquare, sample_loglik, sample_ks = get_rsquare_loglik_ks_sample_isd(sample_i, dat_site_pred, psi)
+                sample_i = sorted(sample_i[:N0])
+                sample_rsquare, sample_loglik = get_sample_stats_isd(sample_i, dat_site_pred, psi)
+                cdf_i = sorted(cdf_i[:N0])
+                sample_ks = max([abs(x - (i+1)/N0) for i, x in enumerate(cdf_i)])
                 
                 out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
                 print>>out_file_rsquare, "".join([',', str(sample_rsquare)]), 
@@ -1768,6 +1773,33 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             print>>out_file_ks, '\t'
             out_file_ks.close()               
 
+def generate_SDR_iISD_sample(input_list):
+    dat_site, theta, dbh2_scale, dat_site_pred_sdr, dat_site_pred_iisd, dat_name, site = input_list
+    S_list = set(dat_site['sp'])
+    sample_i_sdr = []
+    sample_i_iisd = []
+    sample_i_ks = []
+    loglik_i = 0
+    for sp in S_list:
+        dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
+        n_sp = len(dbh2_site_sp)
+        np.random.seed()
+        sample_sp = theta.rvs(n_sp, n_sp)
+        sample_i_sdr.append(sum(sample_sp) / n_sp)
+        sample_i_iisd.extend(sorted(sample_sp))
+        loglik_i += sum(np.log([theta.pdf(x, n_sp) for x in sample_sp]))
+        emp_cdf_sp_i = macroecotools.get_emp_cdf(sample_sp)
+        ks_sp_i = max(abs(emp_cdf_sp_i - np.array([theta.cdf(x, n_sp) for x in sample_sp])))
+        sample_i_ks.append(ks_sp_i)
+        
+    out_file_iisd_ks = open('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', 'a')
+    print>>out_file_iisd_ks, ",".join(str(x) for x in sample_i_ks)
+    out_file_iisd_ks.close()
+    
+    sample_sdr_rsquare = macroecotools.obs_pred_rsquare(np.log10(sample_i_sdr), np.log10(dat_site_pred_sdr))
+    sample_iisd_rsquare = macroecotools.obs_pred_rsquare(np.log10(sample_i_iisd), np.log10(dat_site_pred_iisd))
+    return sample_sdr_rsquare, sample_iisd_rsquare, loglik_i
+    
 def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     """Compare the goodness of fit of the empirical SDR and iISD to 
     
@@ -1783,8 +1815,6 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     dat_obs_pred_iisd = import_obs_pred_data('./data/' + dat_name + '_obs_pred_iisd_dbh2.csv')
         
     for site in site_list:
-        out_list_sdr_rsquare, out_list_iisd_rsquare, out_list_iisd_loglik, out_list_iisd_ks = \
-                            [dat_name, site], [dat_name, site], [dat_name, site], [dat_name, site]
         dat_site = dat[dat['site'] == site]
         S_list = set(dat_site['sp'])
         S0 = len(S_list)
@@ -1793,8 +1823,6 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
             dbh2_scale = dbh_scale ** 2
             E0 = sum(dbh2_scale)
-            beta = get_beta(S0, N0)
-            psi = psi_epsilon(S0, N0, E0)
             theta = theta_epsilon(S0, N0, E0)
             
             dat_site_obs_pred_sdr = dat_obs_pred_sdr[dat_obs_pred_sdr['site'] == site]
@@ -1805,32 +1833,58 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs_iisd = dat_site_obs_pred_iisd['obs']
             dat_site_pred_iisd = dat_site_obs_pred_iisd['pred']
             
-            out_list_sdr_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_sdr), np.log10(dat_site_pred_sdr)))
-            out_list_iisd_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_iisd), np.log10(dat_site_pred_iisd)))
+            emp_sdr_rsquare = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_sdr), np.log10(dat_site_pred_sdr))
+            emp_iisd_rsquare = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_iisd), np.log10(dat_site_pred_iisd))
             
-            loglik_obs = 0
-            for sp in S_list:
+            
+            out_list_sdr_rsquare = [dat_name, site, emp_sdr_rsquare]
+            
+            out_list_iisd_rsquare = [dat_name, site, emp_iisd_rsquare]
+            
+            emp_iisd_loglik = 0
+            emp_ks_list = []
+            n_list = []
+            for i, sp in enumerate(S_list):
                 dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
                 n_sp = len(dbh2_site_sp)
-                loglik_obs += sum(np.log([theta.pdf(x, n_sp) for x in dbh2_site_sp]))
-            out_list_iisd_loglik.append(loglik_obs)
+                n_list.append(n_sp)
+                emp_iisd_loglik += sum(np.log([theta.pdf(x, n_sp) for x in dbh2_site_sp]))
+                
+                emp_cdf = macroecotools.get_emp_cdf(dbh2_site_sp)
+                ks_sp = max(abs(emp_cdf - np.array([theta.cdf(x, n_sp) for x in dbh2_site_sp])))
+                emp_ks_list.append(ks_sp)
+                
+            out_list_iisd_loglik = [dat_name, site, emp_iisd_loglik]
+            out_file_iisd_ks = open('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', 'a')
+            print>>out_file_iisd_ks, ",".join(str(x) for x in n_list)
+            print>>out_file_iisd_ks, ",".join(str(x) for x in emp_ks_list)
+            out_file_iisd_ks.close()
             
-            for i in range(Niter):
-                sample_i_sdr = []
-                sample_i_iisd = []
-                loglik_i = 0
-                for sp in S_list:
-                    dbh2_site_sp = dbh2_scale[dat_site['sp'] == sp]
-                    n_sp = len(dbh2_site_sp)
-                    sample_sp = theta.rvs(n_sp, n_sp)
-                    sample_i_sdr.append(sum(sample_sp) / n_sp)
-                    sample_i_iisd.extend(sorted(sample_sp))
-                    loglik_i += sum(np.log([theta.pdf(x, n_sp) for x in sample_sp]))
-                    
-                out_list_sdr_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i_sdr), np.log10(dat_site_pred_sdr)))
-                out_list_iisd_rsquare.append(macroecotools.obs_pred_rsquare(np.log10(sample_i_iisd), np.log10(dat_site_pred_iisd)))
+            input_list = [dat_site, theta, dbh2_scale, dat_site_pred_sdr, dat_site_pred_iisd, dat_name, site]
+            num_pools = 8
+            Nround = int(math.floor(Niter / num_pools))
+            for i in xrange(Nround):
+                pool = multiprocessing.Pool(num_pools)
+                out_sample = pool.map(generate_SDR_iISD_sample, [input_list for j in xrange(num_pools)])
+                for output in out_sample:
+                    sample_sdr_rsquare, sample_iisd_rsquare, loglik_i = output
+                    out_list_sdr_rsquare.append(sample_sdr_rsquare)
+                    out_list_iisd_rsquare.append(sample_iisd_rsquare)
+                    out_list_iisd_loglik.append(loglik_i)
+                pool.close()
+                pool.join()
+            
+            Nleft = Niter - num_pools * Nround
+            pool = multiprocessing.Pool(Nleft)
+            out_sample = pool.map(generate_SDR_iISD_sample, [input_list for j in xrange(Nleft)])
+            for output in out_sample:
+                sample_sdr_rsquare, sample_iisd_rsquare, loglik_i = output
+                out_list_sdr_rsquare.append(sample_sdr_rsquare)
+                out_list_iisd_rsquare.append(sample_iisd_rsquare)
                 out_list_iisd_loglik.append(loglik_i)
-
+            pool.close()
+            pool.join()
+            
             out_file_sdr_rsquare = open('SDR_bootstrap_rsquare.txt', 'a')
             print>>out_file_sdr_rsquare, ",".join(str(x) for x in out_list_sdr_rsquare)
             out_file_sdr_rsquare.close()
