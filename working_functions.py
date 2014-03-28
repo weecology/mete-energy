@@ -32,6 +32,11 @@ def import_obs_pred_data(input_filename):
                                   delimiter = ",")
     return data
 
+def import_density_file(input_filename):
+    data = np.genfromtxt(input_filename, dtype = "S25, f8", skiprows = 1, 
+                         names = ['sp', 'wsg'], delimiter = ",")
+    return data
+
 def import_par_table(par_table):
     """Import the csv file containing parameter estimates for all datasets."""
     par_table = np.genfromtxt(par_table, dtype = "S15, S15, f8, f8, f8, f8", skiprows = 1, 
@@ -633,7 +638,7 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
         plt.setp(axins, xticks=[], yticks=[])
     return ax
 
-def plot_obs_pred_sad(datasets, data_dir = "./data/", dest_dir = "", radius = 2, inset = False):
+def plot_obs_pred_sad(datasets, data_dir = "./data/", out_name = 'obs_pred_sad.png', dest_dir = "", radius = 2, inset = False):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
     rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     if inset:
@@ -642,9 +647,9 @@ def plot_obs_pred_sad(datasets, data_dir = "./data/", dest_dir = "", radius = 2,
         fig = plot_obs_pred(rad_obs, rad_pred, radius, 1)
     fig.set_xlabel('Predicted abundance', labelpad = 4, size = 8)
     fig.set_ylabel('Observed abundance', labelpad = 4, size = 8)
-    plt.savefig('obs_pred_sad.png', dpi = 400)
+    plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2, inset = False):
+def plot_obs_pred_dbh2(datasets, data_dir = "./data/", out_name = 'obs_pred_dbh2.png', radius = 2, inset = False):
     """Plot the observed vs predicted dbh2 for each individual for multiple datasets."""
     dbh2_sites, dbh2_obs, dbh2_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_dbh2.csv')
     if inset:
@@ -653,9 +658,9 @@ def plot_obs_pred_dbh2(datasets, data_dir = "./data/", radius = 2, inset = False
         fig = plot_obs_pred(dbh2_obs, dbh2_pred, radius, 1)
     fig.set_xlabel(r'Predicted $DBH^2$', labelpad = 4, size = 8)
     fig.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
-    plt.savefig('obs_pred_dbh2.png', dpi = 400)
+    plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05, inset = False):
+def plot_obs_pred_cdf(datasets, data_dir = "./data/", out_name = 'obs_pred_cdf.png', radius = 0.05, inset = False):
     """Plot the observed vs predicted cdf for multiple datasets."""
     cdf_sites, cdf_obs, cdf_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_cdf.csv')
     if inset:
@@ -664,9 +669,9 @@ def plot_obs_pred_cdf(datasets, data_dir = "./data/", radius = 0.05, inset = Fal
         fig = plot_obs_pred(cdf_obs, cdf_pred, radius, 0)
     fig.set_xlabel('Predicted F(x)', labelpad = 4, size = 8)
     fig.set_ylabel('Observed F(x)', labelpad = 4, size = 8)
-    plt.savefig('obs_pred_cdf.png', dpi = 400)
+    plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05, inset = False):
+def plot_obs_pred_freq(datasets, data_dir = "./data/", out_name = 'obs_pred_freq.png', radius = 0.05, inset = False):
     """Plot the observed vs predicted size frequency for multiple datasets."""
     freq_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
     if inset:
@@ -675,9 +680,9 @@ def plot_obs_pred_freq(datasets, data_dir = "./data/", radius = 0.05, inset = Fa
         fig = plot_obs_pred(freq_obs, freq_pred, radius, 1)
     fig.set_xlabel('Predicted frequency', labelpad = 4, size = 8)
     fig.set_ylabel('Observed frequency', labelpad = 4, size = 8)
-    plt.savefig('obs_pred_freq.png', dpi = 400)
+    plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2, inset = False):
+def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", out_name = 'obs_pred_average_mr.png', radius = 2, inset = False):
     """Plot the observed vs predicted species-level average metabolic rate 
     
     for all species across multiple datasets.
@@ -690,9 +695,9 @@ def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", radius = 2, inset = Fal
         fig = plot_obs_pred(mr_obs, mr_pred, radius, 1)
     fig.set_xlabel('Predicted species-average metabolic Rate', labelpad = 4, size = 8)
     fig.set_ylabel('Observed species-average metabolic Rate', labelpad = 4, size = 8)
-    plt.savefig('obs_pred_average_mr.png', dpi = 400)
+    plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", radius = 2, inset = False):
+def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", out_name = 'intra_par.png', radius = 2, inset = False):
     """Plot the scaled intra-specific energy distribution parameter against abundance."""
     par_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
     if inset:
@@ -701,7 +706,7 @@ def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", radius = 2, inset = F
         fig = plot_obs_pred(par_obs, par_pred, radius, 1)
     fig.set_xlabel('Predicted parameter', labelpad = 4, size = 8)
     fig.set_ylabel('Observed parameter', labelpad = 4, size = 8)
-    plt.savefig('intra_par.png', dpi = 400)
+    plt.savefig(out_name, dpi = 400)
 
 def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_freq = 0.05, 
                        radius_mr = 2, radius_par = 2, inset = False):
@@ -805,7 +810,6 @@ def plot_four_patterns_ver2(datasets, data_dir = "./data/", radius_sad = 2, radi
     fig4.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
 
     plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
-    #plt.savefig('four_patterns_ver2.pdf', dpi = 400)
     plt.savefig('four_patterns_ver2.tiff', format = 'tiff', dpi = 300)
     
 def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sad = 2, 
@@ -1112,12 +1116,16 @@ def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
             plt.subplots_adjust(wspace = 0.55, bottom = 0.3)
             plt.savefig(data_dir + list_of_datasets[j] + '_' + site + '_comp_cdf.png', dpi = 400)
     
-def plot_fig1(output_dir = ""):
-    """Illustration of the 4 patterns using BCI data."""
+def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', output_dir = ""):
+    """Illustration of the 4 patterns.
+    
+    The figure in the paper is produced with data from BCI, and the iISD 
+    pattern is created using data for the most abundant species, Hybanthus prunifolius.
+    """
     fig = plt.figure(figsize = (7, 7))
     # Subplot A: Observed and predicted RAD
     # Code adopted and modified from example_sad_plot in mete_sads
-    obs_pred_data = import_obs_pred_data('./data/'+ 'BCI' + '_obs_pred_rad.csv')    
+    obs_pred_data = import_obs_pred_data('./data/'+ dat_name + '_obs_pred_rad.csv')    
     obs = obs_pred_data["obs"]   
     pred = obs_pred_data["pred"]
     rank_obs, relab_obs = macroecotools.get_rad_data(obs)
@@ -1132,7 +1140,7 @@ def plot_fig1(output_dir = ""):
     plot_obj.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     # Subplot B: ISD shown as histogram with predicted pdf
     # Code adopted and modified from plot_ind_hist from fit_other_dist
-    dat = import_raw_data('BCI.csv')
+    dat = import_raw_data(dat_name + '.csv')
     dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(dbh_raw / min(dbh_raw))
     dbh2_scale = dbh_scale ** 2
@@ -1181,8 +1189,8 @@ def plot_fig1(output_dir = ""):
     plt.xlabel('Species-average metabolic rate', fontsize = 8)
     plt.ylabel('Species abundance', fontsize = 8)
     plot_obj.annotate('(C)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
-    # Subplot D: Intra-specific distribution for the most abundant species (Hybanthus prunifolius)
-    hp_dbh2 = dbh2_scale[dat[dat.dtype.names[1]] == 'Hybanthus prunifolius']
+    # Subplot D: Intra-specific distribution for one species
+    hp_dbh2 = dbh2_scale[dat[dat.dtype.names[1]] == sp_name]
     hp_num_bin = int(ceil(log(max(hp_dbh2)) / log(1.7)))
     hp_emp_pdf = []
     for i in range(hp_num_bin):
@@ -1195,7 +1203,6 @@ def plot_fig1(output_dir = ""):
     x_array = np.arange(1, ceil(max(hp_dbh2)) + 1)
     plot_obj = plt.subplot(2, 2, 4)
     p_mete, = plot_obj.loglog(x_array, exp_dist(x_array, lam_pred), '#9400D3', linewidth = 2, label = 'METE')
-    #p_mle, = plot_obj.loglog(x_array, exp_dist(x_array, lam_est), '#FF4040', linewidth = 2, label = 'Truncated exponential')
     plot_obj.bar(1.7 ** np.array(range(hp_num_bin)), hp_emp_pdf, color = '#d6d6d6', 
         width = 0.4 * 1.7 ** np.array(range(hp_num_bin)))
     plt.ylim((max(min(hp_emp_pdf), 10 ** -10), 1))
@@ -1203,10 +1210,7 @@ def plot_fig1(output_dir = ""):
     plt.xlabel(r'$DBH^2$', fontsize = 8)
     plt.ylabel('Probability Density', fontsize = 8)
     plot_obj.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
-    #plt.legend([p_mete, p_mle], ['METE parameter: '+str(round(lam_pred, 4)), 'MLE parameter: '+str(round(lam_est, 4))],
-    #           loc = 1, prop = {'size': 6})
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
-    #plt.savefig(output_dir + 'fig1.pdf', dpi = 400)
     plt.savefig(output_dir + 'fig1.tiff', format = 'tiff', dpi = 300)
 
 def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
@@ -1503,7 +1507,44 @@ def plot_fig_A5():
     plt.title('BCI, randomized')
     
     plt.savefig('Fig_A5.png', dpi = 400)
- 
+
+def get_site_for_alt_analysis(dat_list, density_dic, cutoff = 0.3):
+    """Obtain the list of sites to be used for the analysis using alternative
+    
+    metabolic scaling, where the proportion of individuals with density information 
+    is above the designated cutoff threshold.
+    
+    Inputs:
+    dat_list - list of dataset names
+    density_dic - a dictionary holding the Latin binomial of species and their densities
+    cutoff - the maximal proportion of individials in the community without density values
+             for the community to be included, default at 0.3.
+    
+    """
+    f_write = open('sites_for_additional_analysis.csv', 'wb')
+    f = csv.writer(f_write)
+    dat_list_wsg = []
+    site_list_wsg = []
+    for dat_name in dat_list:
+        dat_i = import_raw_data(dat_name + '.csv')
+        sites_i = np.unique(dat_i['site'])
+        for site in sites_i:
+            dat_site = dat_i[dat_i['site'] == site]
+            records_with_no_wsg = 0
+            for record in dat_site:
+                if record[1] not in density_dic:
+                    records_with_no_wsg += 1
+            if records_with_no_wsg <= cutoff * len(dat_site):
+                dat_list_wsg.append(dat_name)
+                site_list_wsg.append(site)
+    
+    results = np.zeros(len(dat_list_wsg), dtype = ('S15, S15'))
+    results['f0'] = np.array(dat_list_wsg)
+    results['f1'] = np.array(site_list_wsg)
+    
+    f.writerows(results)
+    f_write.close()
+
 def dbh_to_mass(dbh, wsg, forest_type):
     """Convert DBH to biomass based on formulas taken from Chave et al. 2005.
     
@@ -1579,6 +1620,36 @@ def get_mr_alt(list_of_sites_and_forest_types, density_dic, data_dir = ''):
             results['f2'] = np.array(mr_list) ** 0.5 # Square-root to be consistent with dbh in raw_data
             f.writerows(results)
         f_write.close()
+
+def AICc_ISD(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
+    """Calculates the AICc for the four ISDs:
+    
+    truncated expontial, truncated Pareto, truncated Weibull, METE.
+    
+    """
+    dbh_raw = dat['dbh']
+    dbh_scale = np.array(dbh_raw / min(dbh_raw))
+    dbh2_scale = dbh_scale ** 2
+
+    N0 = len(dbh2_scale)
+    E0 = sum(dbh2_scale)
+    S0 = len(set(dat['sp']))
+    ll_expon = sum(np.log(xsquare_pdf(dbh2_scale, trunc_expon, expon_par, 1)))
+    ll_pareto = sum(np.log(xsquare_pdf(dbh2_scale, trunc_pareto, pareto_par, 1)))
+    ll_weibull = sum(np.log(xsquare_pdf(dbh2_scale, trunc_weibull, weibull_k, weibull_lmd, 1)))
+    ll_list = [ll_expon, ll_pareto, ll_weibull]
+    k_list = [2, 2, 3]
+    AICc_list = []
+    for i, ll in enumerate(ll_list):
+        AICc_dist = AICc(k_list[i], ll, N0)
+        AICc_list.append(AICc_dist)
+    psi = psi_epsilon(S0, N0, E0)
+    ll_psi = 0
+    for dbh2 in dbh2_scale:
+        ll_psi += log(psi.pdf(dbh2))
+    AICc_psi = AICc(3, ll_psi, N0)
+    AICc_list.append(AICc_psi)
+    return np.array(AICc_list)
 
 def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sites.csv'):
     """Obtain AICc value for the four ISDs and write to file"""
