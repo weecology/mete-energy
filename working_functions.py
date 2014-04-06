@@ -761,7 +761,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     plt.savefig('four_patterns.pdf', dpi = 400)    
 
 def plot_four_patterns_ver2(datasets, data_dir = "./data/", radius_sad = 2, radius_isd = 2, 
-                       radius_mr = 2, radius_iisd = 2, inset = False):
+                       radius_mr = 2, radius_iisd = 2, inset = False, out_name = 'four_patterns'):
     """Plot predicted versus observed data for 4 patterns (rank abundance for SAD, 
     
     individual body size for ISD and iISD, average body size for SDR) as subplots in a single figure.
@@ -810,7 +810,7 @@ def plot_four_patterns_ver2(datasets, data_dir = "./data/", radius_sad = 2, radi
     fig4.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
 
     plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
-    plt.savefig('four_patterns_ver2.tiff', format = 'tiff', dpi = 300)
+    plt.savefig(out_name + '.pdf', format = 'pdf', dpi = 400)
     
 def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sad = 2, 
                               radius_freq = 0.05, radius_mr = 2, radius_par = 2):
@@ -1641,13 +1641,13 @@ def AICc_ISD(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
     k_list = [2, 2, 3]
     AICc_list = []
     for i, ll in enumerate(ll_list):
-        AICc_dist = AICc(k_list[i], ll, N0)
+        AICc_dist = macroecotools.AICc(k_list[i], ll, N0)
         AICc_list.append(AICc_dist)
     psi = psi_epsilon(S0, N0, E0)
     ll_psi = 0
     for dbh2 in dbh2_scale:
         ll_psi += log(psi.pdf(dbh2))
-    AICc_psi = AICc(3, ll_psi, N0)
+    AICc_psi = macroecotools.AICc(3, ll_psi, N0)
     AICc_list.append(AICc_psi)
     return np.array(AICc_list)
 
