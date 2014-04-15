@@ -1116,7 +1116,7 @@ def comp_isd(datasets, list_of_datasets, data_dir = "./out_files/"):
             plt.subplots_adjust(wspace = 0.55, bottom = 0.3)
             plt.savefig(data_dir + list_of_datasets[j] + '_' + site + '_comp_cdf.png', dpi = 400)
     
-def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', output_dir = ""):
+def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', dat_dir = './out_files/', output_dir = ""):
     """Illustration of the 4 patterns.
     
     The figure in the paper is produced with data from BCI, and the iISD 
@@ -1125,7 +1125,7 @@ def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', output_dir = 
     fig = plt.figure(figsize = (7, 7))
     # Subplot A: Observed and predicted RAD
     # Code adopted and modified from example_sad_plot in mete_sads
-    obs_pred_data = import_obs_pred_data('./out_files/'+ dat_name + '_obs_pred_rad.csv')    
+    obs_pred_data = import_obs_pred_data(dat_dir + dat_name + '_obs_pred_rad.csv')    
     obs = obs_pred_data["obs"]   
     pred = obs_pred_data["pred"]
     rank_obs, relab_obs = macroecotools.get_rad_data(obs)
@@ -1140,7 +1140,7 @@ def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', output_dir = 
     plot_obj.annotate('(A)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     # Subplot B: ISD shown as histogram with predicted pdf
     # Code adopted and modified from plot_ind_hist from fit_other_dist
-    dat = import_raw_data(dat_name + '.csv')
+    dat = import_raw_data('./data/' + dat_name + '.csv')
     dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(dbh_raw / min(dbh_raw))
     dbh2_scale = dbh_scale ** 2
@@ -1523,7 +1523,7 @@ def get_site_for_alt_analysis(dat_list, density_dic, cutoff = 0.3):
     """
     list_of_site = []
     for dat_name in dat_list:
-        dat_i = import_raw_data(dat_name + '.csv')
+        dat_i = import_raw_data('./data/' + dat_name + '.csv')
         sites_i = np.unique(dat_i['site'])
         for site in sites_i:
             dat_site = dat_i[dat_i['site'] == site]
@@ -1590,7 +1590,7 @@ def get_mr_alt(list_of_sites_and_forest_types, list_for_analysis, density_dic, d
         site_list['f1'][i] = dat_site_combo[1]
     for dat_name in set(site_list['f0']):
         if dat_name in site_types['dat_name']:
-            raw_data = import_raw_data(dat_name + '.csv')
+            raw_data = import_raw_data('./data/' + dat_name + '.csv')
             f_write = open(data_dir + dat_name + '_alt.csv', 'wb')
             f = csv.writer(f_write)
             col_names = np.zeros(1, dtype = ('S15, S15, S15'))
@@ -1657,7 +1657,7 @@ def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sit
                          names = ['dat','site','expon_par','pareto_par','weibull_k','weibull_lmd'],
                                   delimiter = ",")
     for dat_name in dat_list:
-        dat_i = import_raw_data(dat_name + '.csv')
+        dat_i = import_raw_data('./data/' + dat_name + '.csv')
         for site in np.unique(dat_i['site']):
             dat_site = dat_i[dat_i['site'] == site]
             S = len(np.unique(dat_site['sp']))
@@ -1692,7 +1692,7 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
     cutoff - minimum number of species required to run - 1
     Niter - number of bootstrap samples
     """
-    dat = import_raw_data(dat_name + '.csv')
+    dat = import_raw_data('./data/' + dat_name + '.csv')
     site_list = np.unique(dat['site'])
     dat_obs_pred = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_rad.csv')
         
@@ -1763,7 +1763,7 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
     cutoff - minimum number of species required to run - 1
     Niter - number of bootstrap samples
     """
-    dat = import_raw_data(dat_name + '.csv')
+    dat = import_raw_data('./data/' + dat_name + '.csv')
     site_list = np.unique(dat['site'])
     dat_obs_pred = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_isd_dbh2.csv')
         
@@ -1878,7 +1878,7 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     cutoff - minimum number of species required to run - 1
     Niter - number of bootstrap samples
     """
-    dat = import_raw_data(dat_name + '.csv')
+    dat = import_raw_data('./data/' + dat_name + '.csv')
     site_list = np.unique(dat['site'])
     dat_obs_pred_sdr = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_avg_mr.csv')
     dat_obs_pred_iisd = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_iisd_dbh2.csv')
