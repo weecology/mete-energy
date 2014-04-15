@@ -44,7 +44,7 @@ def import_par_table(par_table):
                                        'weibull_k', 'weibull_lmd'], delimiter = ",")
     return par_table
             
-def get_obs_pred_rad(raw_data, dataset_name, data_dir='./data/', cutoff = 9):
+def get_obs_pred_rad(raw_data, dataset_name, data_dir='./out_files/', cutoff = 9):
     """Use data to compare the predicted and empirical SADs and get results in csv files
     
     (Copied and modified from the funciton 'run_test' from White et al. 2012)
@@ -128,7 +128,7 @@ def get_obs_cdf(dat):
         emp_cdf.append(point_cdf)
     return np.array(emp_cdf)
 
-def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './out_files/', cutoff = 9):
     """Use data to compare the predicted and empirical CDFs of the 
     
     individual metabolic rate distribution and get results in csv files.
@@ -163,7 +163,7 @@ def get_obs_pred_cdf(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             f1.writerows(results)
     f1_write.close()
     
-def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './out_files/', cutoff = 9):
     """Use data to compare the predicted and empirical dbh**2 of individuals and 
     
     get results in csv files.
@@ -198,7 +198,7 @@ def get_obs_pred_dbh2(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
             f1.writerows(results)
     f1_write.close()
     
-def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', bin_size = 1.7, cutoff = 9):
+def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './out_files/', bin_size = 1.7, cutoff = 9):
     """Use data to compare the predicted and empirical frequency for each size bins
     
     and store results in csv files.
@@ -243,7 +243,7 @@ def get_obs_pred_frequency(raw_data, dataset_name, data_dir = './data/', bin_siz
             f_writer.writerows(results)
     f.close()
         
-def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff = 9, n_cutoff = 4):
+def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './out_files/', cutoff = 9, n_cutoff = 4):
     """Compare the predicted and empirical average dbh^2 as well as compute the scaled 
     
     intra-specific energy distribution for each species and get results in csv files.
@@ -299,7 +299,7 @@ def get_obs_pred_intradist(raw_data, dataset_name, data_dir = './data/', cutoff 
     f1_write.close()
     f2_write.close()
 
-def get_obs_pred_iisd(raw_data, dataset_name, data_dir = './data/', cutoff = 9):
+def get_obs_pred_iisd(raw_data, dataset_name, data_dir = './out_files/', cutoff = 9):
     """Compare the predicted and empirical individual dbh^2 from  
     
     intra-specific energy distribution for each species and get results in csv files.
@@ -357,12 +357,12 @@ def ks_test_sp(sp_dbh2, Nsim = 1000, p = 0.05):
     count = 0
     for i in range(Nsim):
         sim_dbh2 = mdis.trunc_expon.rvs(par_mle, 1, size = len(sp_dbh2))
-        ks_test = ks_2samp(sp_dbh2, sim_dbh2)
-        if ks_test[1] <= p:
+        ks_result = ks_2samp(sp_dbh2, sim_dbh2)
+        if ks_result[1] <= p:
             count += 1
     return count / Nsim
 
-def ks_test(datasets, data_dir = './data/', Nsim = 1000, p = 0.05, cutoff = 9, n_cutoff = 4):
+def ks_test(datasets, data_dir = './out_files/', Nsim = 1000, p = 0.05, cutoff = 9, n_cutoff = 4):
     """Kolmogorov-Smirnov test for each species in each dataset."""
     f_write = open(data_dir + 'ks_test_' + str(Nsim) + '_' + str(p) + '.csv', 'wb')
     f = csv.writer(f_write)
@@ -394,7 +394,7 @@ def ks_test(datasets, data_dir = './data/', Nsim = 1000, p = 0.05, cutoff = 9, n
             f.writerows(results)
     f_write.close()
     
-def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, Niter = 200):
+def species_rand_test(datasets, data_dir = './out_files/', cutoff = 9, n_cutoff = 4, Niter = 200):
     """Randomize species identity within sites and compare the r-square obtained 
     
     for abundance-size distribution and intraspecific energy distribution parameter
@@ -451,7 +451,7 @@ def species_rand_test(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4, 
     f1_write.close()
     f2_write.close()
     
-def get_quantiles(input_filename, data_dir = './data/'):
+def get_quantiles(input_filename, data_dir = './out_files/'):
     """Manipulate file obtained from species_rand_test to obtain quantiles for plotting"""
     emp_list, max_list, min_list = [], [], []
     with open(data_dir + input_filename, 'rb') as datafile:
@@ -470,7 +470,7 @@ def get_quantiles(input_filename, data_dir = './data/'):
     results = np.array([emp_list, max_list, min_list])
     return results
 
-def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
+def plot_rand_exp(datasets, data_dir = './out_files/', cutoff = 9, n_cutoff = 4):
     """Plot predicted-observed MR relationship and abd-scaled parameter relationship,
     
     with expected results from randomization.
@@ -536,7 +536,7 @@ def plot_rand_exp(datasets, data_dir = './data/', cutoff = 9, n_cutoff = 4):
                 plt.savefig(data_dir + dataset + '_' + site + '_rand_exp.png', dpi = 400)
                 plt.close()
 
-def plot_rand_test(data_dir = './data/'):
+def plot_rand_test(data_dir = './out_files/'):
     """Plot the results obtained from species_rand_test"""
     rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
     rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
@@ -563,7 +563,7 @@ def plot_rand_test(data_dir = './data/'):
     plt.subplots_adjust(hspace = 0.25, left = 0.25, right = 0.9, top = 0.95, bottom = 0.05)
     plt.savefig('rand_test.pdf', dpi = 400)
 
-#def plot_rand_test(data_dir = './data/'):
+#def plot_rand_test(data_dir = './out_files/'):
     #"""Plot the results obtained from species_rand_test"""
     #rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
     #rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
@@ -638,7 +638,7 @@ def plot_obs_pred(obs, pred, radius, loglog, ax = None, inset = False, sites = N
         plt.setp(axins, xticks=[], yticks=[])
     return ax
 
-def plot_obs_pred_sad(datasets, data_dir = "./data/", out_name = 'obs_pred_sad.png', dest_dir = "", radius = 2, inset = False):
+def plot_obs_pred_sad(datasets, data_dir = "./out_files/", out_name = 'obs_pred_sad.png', dest_dir = "", radius = 2, inset = False):
     """Plot the observed vs predicted abundance for each species for multiple datasets."""
     rad_sites, rad_obs, rad_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_rad.csv')
     if inset:
@@ -649,7 +649,7 @@ def plot_obs_pred_sad(datasets, data_dir = "./data/", out_name = 'obs_pred_sad.p
     fig.set_ylabel('Observed abundance', labelpad = 4, size = 8)
     plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_dbh2(datasets, data_dir = "./data/", out_name = 'obs_pred_dbh2.png', radius = 2, inset = False):
+def plot_obs_pred_dbh2(datasets, data_dir = "./out_files/", out_name = 'obs_pred_dbh2.png', radius = 2, inset = False):
     """Plot the observed vs predicted dbh2 for each individual for multiple datasets."""
     dbh2_sites, dbh2_obs, dbh2_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_dbh2.csv')
     if inset:
@@ -660,7 +660,7 @@ def plot_obs_pred_dbh2(datasets, data_dir = "./data/", out_name = 'obs_pred_dbh2
     fig.set_ylabel(r'Observed $DBH^2$', labelpad = 4, size = 8)
     plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_cdf(datasets, data_dir = "./data/", out_name = 'obs_pred_cdf.png', radius = 0.05, inset = False):
+def plot_obs_pred_cdf(datasets, data_dir = "./out_files/", out_name = 'obs_pred_cdf.png', radius = 0.05, inset = False):
     """Plot the observed vs predicted cdf for multiple datasets."""
     cdf_sites, cdf_obs, cdf_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_isd_cdf.csv')
     if inset:
@@ -671,7 +671,7 @@ def plot_obs_pred_cdf(datasets, data_dir = "./data/", out_name = 'obs_pred_cdf.p
     fig.set_ylabel('Observed F(x)', labelpad = 4, size = 8)
     plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_freq(datasets, data_dir = "./data/", out_name = 'obs_pred_freq.png', radius = 0.05, inset = False):
+def plot_obs_pred_freq(datasets, data_dir = "./out_files/", out_name = 'obs_pred_freq.png', radius = 0.05, inset = False):
     """Plot the observed vs predicted size frequency for multiple datasets."""
     freq_sites, freq_obs, freq_pred = get_obs_pred_from_file(datasets, data_dir, '_obs_pred_freq.csv')
     if inset:
@@ -682,7 +682,7 @@ def plot_obs_pred_freq(datasets, data_dir = "./data/", out_name = 'obs_pred_freq
     fig.set_ylabel('Observed frequency', labelpad = 4, size = 8)
     plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", out_name = 'obs_pred_average_mr.png', radius = 2, inset = False):
+def plot_obs_pred_avg_mr(datasets, data_dir = "./out_files/", out_name = 'obs_pred_average_mr.png', radius = 2, inset = False):
     """Plot the observed vs predicted species-level average metabolic rate 
     
     for all species across multiple datasets.
@@ -697,7 +697,7 @@ def plot_obs_pred_avg_mr(datasets, data_dir = "./data/", out_name = 'obs_pred_av
     fig.set_ylabel('Observed species-average metabolic Rate', labelpad = 4, size = 8)
     plt.savefig(out_name, dpi = 400)
 
-def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", out_name = 'intra_par.png', radius = 2, inset = False):
+def plot_obs_pred_iisd_par(datasets, data_dir = "./out_files/", out_name = 'intra_par.png', radius = 2, inset = False):
     """Plot the scaled intra-specific energy distribution parameter against abundance."""
     par_sites, par_obs, par_pred = get_obs_pred_from_file(datasets, data_dir, '_par.csv')
     if inset:
@@ -708,7 +708,7 @@ def plot_obs_pred_iisd_par(datasets, data_dir = "./data/", out_name = 'intra_par
     fig.set_ylabel('Observed parameter', labelpad = 4, size = 8)
     plt.savefig(out_name, dpi = 400)
 
-def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_freq = 0.05, 
+def plot_four_patterns(datasets, data_dir = "./out_files/", radius_sad = 2, radius_freq = 0.05, 
                        radius_mr = 2, radius_par = 2, inset = False):
     """Plot predicted versus observed data for 4 patterns (SAD, ISD, abundance-MR relationship, 
     
@@ -760,7 +760,7 @@ def plot_four_patterns(datasets, data_dir = "./data/", radius_sad = 2, radius_fr
     plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
     plt.savefig('four_patterns.pdf', dpi = 400)    
 
-def plot_four_patterns_ver2(datasets, data_dir = "./data/", radius_sad = 2, radius_isd = 2, 
+def plot_four_patterns_ver2(datasets, data_dir = "./out_files/", radius_sad = 2, radius_isd = 2, 
                        radius_mr = 2, radius_iisd = 2, inset = False, out_name = 'four_patterns'):
     """Plot predicted versus observed data for 4 patterns (rank abundance for SAD, 
     
@@ -812,7 +812,7 @@ def plot_four_patterns_ver2(datasets, data_dir = "./data/", radius_sad = 2, radi
     plt.subplots_adjust(wspace = 0.2, hspace = 0.2)
     plt.savefig(out_name + '.pdf', format = 'pdf', dpi = 400)
     
-def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sad = 2, 
+def plot_four_patterns_single(datasets, outfile, data_dir = "./out_files/", radius_sad = 2, 
                               radius_freq = 0.05, radius_mr = 2, radius_par = 2):
     """Create the four-pattern figure for each plot separately and save all figures into a single pdf."""
     pp = PdfPages(outfile)
@@ -858,7 +858,7 @@ def plot_four_patterns_single(datasets, outfile, data_dir = "./data/", radius_sa
             plt.savefig(pp, format = 'pdf', dpi = 400)
     pp.close()
 
-def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radius_par = 2, title = True,
+def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./out_files/", radius_par = 2, title = True,
                                    bin_size = 1.7, cutoff = 9, n_cutoff = 4):
     """Version two of four-pattern figure at plot level."""
     pp = PdfPages(outfile)
@@ -957,7 +957,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./data/", radi
                 plt.savefig(pp, format = 'pdf', dpi = 400)
     pp.close()
 
-def plot_four_patterns_single_ver3(datasets, outfile, data_dir = "./data/", radius_par = 2, title = True,
+def plot_four_patterns_single_ver3(datasets, outfile, data_dir = "./out_files/", radius_par = 2, title = True,
                                    bin_size = 1.7, cutoff = 9, n_cutoff = 4):
     """Version three of four-pattern figure at plot level (consist with plot_four_patterns_ver2)"""
     pp = PdfPages(outfile)
@@ -1056,7 +1056,7 @@ def plot_four_patterns_single_ver3(datasets, outfile, data_dir = "./data/", radi
                 plt.savefig(pp, format = 'pdf', dpi = 200)
     pp.close()
 
-def comp_isd(datasets, list_of_datasets, data_dir = "./data/"):
+def comp_isd(datasets, list_of_datasets, data_dir = "./out_files/"):
     """Compare the three visual representation of ISD: histogram with pdf, 
     
     predicted and empirical cdf, 1:1 plot of cdf. 
@@ -1125,7 +1125,7 @@ def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', output_dir = 
     fig = plt.figure(figsize = (7, 7))
     # Subplot A: Observed and predicted RAD
     # Code adopted and modified from example_sad_plot in mete_sads
-    obs_pred_data = import_obs_pred_data('./data/'+ dat_name + '_obs_pred_rad.csv')    
+    obs_pred_data = import_obs_pred_data('./out_files/'+ dat_name + '_obs_pred_rad.csv')    
     obs = obs_pred_data["obs"]   
     pred = obs_pred_data["pred"]
     rank_obs, relab_obs = macroecotools.get_rad_data(obs)
@@ -1211,9 +1211,9 @@ def plot_fig1(dat_name = 'BCI', sp_name = 'Hybanthus prunifolius', output_dir = 
     plt.ylabel('Probability Density', fontsize = 8)
     plot_obj.annotate('(D)', xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
     plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
-    plt.savefig(output_dir + 'fig1.tiff', format = 'tiff', dpi = 300)
+    plt.savefig(output_dir + 'Figure 1.pdf', format = 'pdf', dpi = 300)
 
-def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
+def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './out_files/'):
     """Create a csv file with AICc weights of the four distributions"""
     f1_write = open(data_dir + 'weight_table.csv', 'wb')
     #f1 = csv.writer(f1_write)
@@ -1233,7 +1233,7 @@ def get_weights_all(datasets, list_of_dataset_names, par_table, data_dir = './da
                fmt = ('%s', '%s', '%f', '%f', '%f', '%f'), delimiter = ",")
     f1_write.close()
 
-def plot_hist(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
+def plot_hist(datasets, list_of_dataset_names, par_table, data_dir = './out_files/'):
     """Plot histogram with density curves of the four distributions for individual sites"""
     fig = plt.figure(figsize = (7, 7))
     num_datasets = len(datasets)
@@ -1252,7 +1252,7 @@ def plot_hist(datasets, list_of_dataset_names, par_table, data_dir = './data/'):
                  rotation = 'vertical')
     plt.savefig('ind_dist.png', dpi = 400)
 
-def plot_dens_ks_test(p_list, sig_level):
+def plot_dens_ks_test(p_list, sig_level, out_fig = 'Density_KS_test.png'):
     """Create an across-species density plot of the proportion of significant Kolmogorov-Smirnov tests.
     
     Input:
@@ -1271,7 +1271,7 @@ def plot_dens_ks_test(p_list, sig_level):
     plt.annotate('Species with non-exponential iISD: %s%%' %(round(len(p_list[np.array(p_list) >= sig_level])/len(p_list)*100, 2)),
                  xy = (0.3, 0.7), xycoords = 'axes fraction', color = 'k')
 
-    plt.savefig('Density_KS_test.png', dpi = 400)
+    plt.savefig(out_fig, dpi = 400)
 
 def plot_spp_exp_single(dat, threshold = 5, plot_obj = None):
     """Plot the MLE exponential parameter for each species against abundance n, 
@@ -1307,7 +1307,7 @@ def plot_spp_exp_single(dat, threshold = 5, plot_obj = None):
     plot_obj.scatter(n_list, exp_list, color = '#999999', marker = 'o')
     return plot_obj
 
-def plot_spp_exp(datasets, list_of_dataset_names, data_dir = './data/'):
+def plot_spp_exp(datasets, list_of_dataset_names, data_dir = './out_files/'):
     """Call plot_spp_exp_single and generate a figure with multiple subplots."""
     fig = plt.figure(figsize = (7, 7))
     num_datasets = len(datasets)
@@ -1354,7 +1354,7 @@ def plot_species_avg_single(dat, plot_obj = None):
     plot_obj.scatter(dbh2_obs, n_obs, color = '#999999', marker = 'o')
     return plot_obj
 
-def plot_species_avg(datasets, list_of_dataset_names, data_dir = './data/'):
+def plot_species_avg(datasets, list_of_dataset_names, data_dir = './out_files/'):
     """Call plot_species_avg_single and generate a figure with multiple subplots."""
     fig = plt.figure(figsize = (7, 7))
     num_datasets = len(datasets)
@@ -1368,7 +1368,7 @@ def plot_species_avg(datasets, list_of_dataset_names, data_dir = './data/'):
                  va = 'center', rotation = 'vertical')
     plt.savefig(data_dir + 'across_spp.png', dpi = 400)
 
-def plot_spp_frequency(dat, spp_name1, spp_name2, data_dir = './data/'):
+def plot_spp_frequency(dat, spp_name1, spp_name2, data_dir = './out_files/'):
     """Plot the predicted vs. observed frequency distribution for two species.
     
     Empirical data are plotted as ranked dots while predicted distributions
@@ -1410,7 +1410,7 @@ def plot_spp_frequency(dat, spp_name1, spp_name2, data_dir = './data/'):
     plt.xlabel('Rank')
     plt.savefig(data_dir + 'intra_dist_2spp.png', dpi = 400)
 
-def plot_spp_frequency_pdf(dat, spp_name1, spp_name2, data_dir = './data/'):
+def plot_spp_frequency_pdf(dat, spp_name1, spp_name2, data_dir = './out_files/'):
     """Plot the predicted vs. observed frequency distribution of energy or body mass for a specific species."""
     dbh_raw = dat[dat.dtype.names[2]]
     dbh_scale = np.array(dbh_raw / min(dbh_raw))
@@ -1544,7 +1544,7 @@ def dbh_to_mass(dbh, wsg, forest_type):
     wsg - wood specific gravity (g/cm**3)
     forest_type - forest type that determines fitting parameters. 
                   Can take one of the four values: "dry", "moist", "wet" and "mangrove". 
-    Output: above ground biomass (kg)get_mr_alt
+    Output: above ground biomass (kg)
     
     """
     if forest_type == "dry":
@@ -1566,7 +1566,7 @@ def mass_to_resp(agb):
     G, H, g, h = 6.69, 0.421, 1.082, 0.78
     return 1 / (1 / (G * agb ** g) + 1 / (H * agb ** h))
 
-def get_mr_alt(list_of_sites_and_forest_types, list_for_analysis, density_dic, data_dir = ''):
+def get_mr_alt(list_of_sites_and_forest_types, list_for_analysis, density_dic, data_dir = './data/'):
     """Alternative method to obtain metabolic rate from dbh.
     
     Input:
@@ -1694,7 +1694,7 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
     """
     dat = import_raw_data(dat_name + '.csv')
     site_list = np.unique(dat['site'])
-    dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_rad.csv')
+    dat_obs_pred = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_rad.csv')
         
     for site in site_list:
         out_list_rsquare, out_list_loglik, out_list_ks = [dat_name, site], [dat_name, site], [dat_name, site]
@@ -1765,7 +1765,7 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
     """
     dat = import_raw_data(dat_name + '.csv')
     site_list = np.unique(dat['site'])
-    dat_obs_pred = import_obs_pred_data('./data/' + dat_name + '_obs_pred_isd_dbh2.csv')
+    dat_obs_pred = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_isd_dbh2.csv')
         
     for site in site_list:
         dat_site = dat[dat['site'] == site]
@@ -1880,8 +1880,8 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     """
     dat = import_raw_data(dat_name + '.csv')
     site_list = np.unique(dat['site'])
-    dat_obs_pred_sdr = import_obs_pred_data('./data/' + dat_name + '_obs_pred_avg_mr.csv')
-    dat_obs_pred_iisd = import_obs_pred_data('./data/' + dat_name + '_obs_pred_iisd_dbh2.csv')
+    dat_obs_pred_sdr = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_avg_mr.csv')
+    dat_obs_pred_iisd = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_iisd_dbh2.csv')
         
     for site in site_list:
         dat_site = dat[dat['site'] == site]
