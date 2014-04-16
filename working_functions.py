@@ -1508,7 +1508,7 @@ def plot_fig_A5():
     
     plt.savefig('Fig_A5.png', dpi = 400)
 
-def get_site_for_alt_analysis(dat_list, density_dic, cutoff = 0.3):
+def get_site_for_alt_analysis(dat_list, density_dic, list_of_sites_and_forest_types, cutoff = 0.3):
     """Obtain the list of sites to be used for the analysis using alternative
     
     metabolic scaling, where the proportion of individuals with density information 
@@ -1517,24 +1517,38 @@ def get_site_for_alt_analysis(dat_list, density_dic, cutoff = 0.3):
     Inputs:
     dat_list - list of dataset names
     density_dic - a dictionary holding the Latin binomial of species and their densities
+    list_of_sites_and_forest_types - input file name with three columns - dat_name, site, forest type
     cutoff - the maximal proportion of individials in the community without density values
              for the community to be included, default at 0.3.
     
     """
+    site_types = np.genfromtxt(list_of_sites_and_forest_types, dtype = "S15,S15,S15",
+                              names = ['dat_name','site','forest_type'],
+                              delimiter = ",")    
     list_of_site = []
     for dat_name in dat_list:
-        dat_i = import_raw_data('./data/' + dat_name + '.csv')
-        sites_i = np.unique(dat_i['site'])
-        for site in sites_i:
-            dat_site = dat_i[dat_i['site'] == site]
-            records_with_no_wsg = 0
-            for record in dat_site:
-                if record[1] not in density_dic:
-                    records_with_no_wsg += 1
-            if records_with_no_wsg <= cutoff * len(dat_site):
-                list_of_site.append([dat_name, site])
+        if dat_name in site_types['dat_name']:
+            site_type_dat = site_types[site_types['dat_name'] == dat_name]
+            dat_i = import_raw_data('./data/' + dat_name + '.csv')
+            sites_i = np.unique(dat_i['site'])
+            for site in sites_i:
+                if site in site_type_dat['site']:
+                    type_site = site_type_dat[site_type_dat['site'] == site]['forest_type'][0]
+                    dat_site = dat_i[dat_i['site'] == site]
+                    records_with_no_wsg = 0
+                    for record in dat_site:
+                        if record[1] not in density_dic:
+                            records_with_no_wsg += 1
+                    if records_with_no_wsg <= cutoff * len(dat_site):
+                        list_of_site.append([dat_name, site, type_site])
     
-    return list_of_site
+    list_of_site_structured = np.zeros(len(list_of_site), 
+                                       dtype =[('dat_name', 'S15'), ('site', 'S15'), ('forest_type', 'S15')])
+    for i, dat_site_trio in enumerate(list_of_site):
+        list_of_site_structured['dat_name'][i] = dat_site_trio[0]
+        list_of_site_structured['site'][i] = dat_site_trio[1]
+        list_of_site_structured['forest_type'][i] = dat_site_trio[2]   
+    return list_of_site_structured
 
 def dbh_to_mass(dbh, wsg, forest_type):
     """Convert DBH to biomass based on formulas taken from Chave et al. 2005.
@@ -1566,11 +1580,10 @@ def mass_to_resp(agb):
     G, H, g, h = 6.69, 0.421, 1.082, 0.78
     return 1 / (1 / (G * agb ** g) + 1 / (H * agb ** h))
 
-def get_mr_alt(list_of_sites_and_forest_types, list_for_analysis, density_dic, data_dir = './data/'):
+def get_mr_alt(list_for_analysis, density_dic, data_dir = './data/'):
     """Alternative method to obtain metabolic rate from dbh.
     
     Input:
-    list_of_sites_and_forest_types: input file name with three columns - dat_name, site, forest type.
     list_for_analysis: a list with [dataset_name, site_name] for the alternative analysis
     density_dic: a dictionary holding wood density (wsg) of each species.
     data_dir: directory to save the output.
@@ -1579,45 +1592,36 @@ def get_mr_alt(list_of_sites_and_forest_types, list_for_analysis, density_dic, d
     A csv file for each site with columns 'site', 'sp', and 'mr'.
     
     """
-    site_types = np.genfromtxt(list_of_sites_and_forest_types, dtype = "S15,S15,S15",
-                              names = ['dat_name','site','forest_type'],
-                              delimiter = ",")
     mean_msg = sum(density_dic.values()) / len(density_dic.values())
     
-    site_list = np.zeros(len(list_for_analysis), dtype = 'S15, S15')
-    for i, dat_site_combo in enumerate(list_for_analysis):
-        site_list['f0'][i] = dat_site_combo[0]
-        site_list['f1'][i] = dat_site_combo[1]
-    for dat_name in set(site_list['f0']):
-        if dat_name in site_types['dat_name']:
-            raw_data = import_raw_data('./data/' + dat_name + '.csv')
-            f_write = open(data_dir + dat_name + '_alt.csv', 'wb')
-            f = csv.writer(f_write)
-            col_names = np.zeros(1, dtype = ('S15, S15, S15'))
-            col_names['f0'] = 'site'
-            col_names['f1'] = 'sp'
-            col_names['f2'] = 'mr_square_root'
-            f.writerows(col_names)
+    for dat_name in np.unique(list_for_analysis['dat_name']):
+        raw_data = import_raw_data('./data/' + dat_name + '.csv')
+        f_write = open(data_dir + dat_name + '_alt.csv', 'wb')
+        f = csv.writer(f_write)
+        col_names = np.zeros(1, dtype = ('S15, S15, S15'))
+        col_names['f0'] = 'site'
+        col_names['f1'] = 'sp'
+        col_names['f2'] = 'mr_square_root'
+        f.writerows(col_names)
             
-            sites_for_dat = site_list[site_list['f0'] == dat_name]['f1']
-            for site_name in sites_for_dat:
-                site_row = site_types[(site_types['dat_name'] == dat_name) * (site_types['site'] == site_name)]
-                site_type = site_row['forest_type']
-                dat_site = raw_data[raw_data['site'] == site_name]
-                mr_list = []
-                for record in dat_site:
-                    if record['sp'] in density_dic:
-                        msg_record = density_dic[record['sp']]
-                    else: 
-                        msg_record = mean_msg
-                    mass_record = dbh_to_mass(record['dbh'], msg_record, site_type)
-                    mr_list.append(mass_to_resp(mass_record))
-                results = np.zeros(len(dat_site), dtype = ('S15, S25, f8'))
-                results['f0'] = dat_site['site']
-                results['f1'] = dat_site['sp']
-                results['f2'] = np.array(mr_list) ** 0.5 # Square-root to be consistent with dbh in raw_data
-                f.writerows(results)
-            f_write.close()
+        sites_for_dat = list_for_analysis[list_for_analysis['dat_name'] == dat_name]
+        for site_name in sites_for_dat['site']:
+            site_type = sites_for_dat[sites_for_dat['site'] == site_name]['forest_type'][0]
+            dat_site = raw_data[raw_data['site'] == site_name]
+            mr_list = []
+            for record in dat_site:
+                if record['sp'] in density_dic:
+                    msg_record = density_dic[record['sp']]
+                else: 
+                    msg_record = mean_msg
+                mass_record = dbh_to_mass(record['dbh'], msg_record, site_type)
+                mr_list.append(mass_to_resp(mass_record))
+            results = np.zeros(len(dat_site), dtype = ('S15, S25, f8'))
+            results['f0'] = dat_site['site']
+            results['f1'] = dat_site['sp']
+            results['f2'] = np.array(mr_list) ** 0.5 # Square-root to be consistent with dbh in raw_data
+            f.writerows(results)
+        f_write.close()
 
 def AICc_ISD(dat, expon_par, pareto_par, weibull_k, weibull_lmd):
     """Calculates the AICc for the four ISDs:
