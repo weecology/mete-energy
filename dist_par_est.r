@@ -21,6 +21,7 @@ trunc_pareto_par_est = function(x, lower_bound){
 }
 
 read_file = function(path){
+  path = paste('./data/', path, sep = '')
   dat = read.csv(path,
     colClasses = c('character', 'character', 'numeric'))
   return(dat)
