@@ -368,7 +368,7 @@ def ks_test(datasets, data_dir = './out_files/', Nsim = 1000, p = 0.05, cutoff =
     f = csv.writer(f_write)
     
     for dataset in datasets:
-        raw_data = import_raw_data(dataset + '.csv')
+        raw_data = import_raw_data('./data/' + dataset + '.csv')
         usites = np.sort(list(set(raw_data['site'])))
         for site in usites:
             subdat = raw_data[raw_data['site'] == site]
@@ -411,7 +411,7 @@ def species_rand_test(datasets, data_dir = './out_files/', cutoff = 9, n_cutoff 
     f2 = csv.writer(f2_write)
     
     for dataset in datasets:
-        raw_data = import_raw_data(dataset + '.csv')
+        raw_data = import_raw_data('./data/' + dataset + '.csv')
         usites = np.sort(list(set(raw_data['site'])))
         for site in usites:
             subdat = raw_data[raw_data['site'] == site]
@@ -477,7 +477,7 @@ def plot_rand_exp(datasets, data_dir = './out_files/', cutoff = 9, n_cutoff = 4)
     
     """
     for dataset in datasets:
-        raw_data = import_raw_data(dataset + '.csv')
+        raw_data = import_raw_data('./data/'+ dataset + '.csv')
         usites = np.sort(list(set(raw_data['site'])))
         for site in usites:
             subdat = raw_data[raw_data['site'] == site]
@@ -864,7 +864,7 @@ def plot_four_patterns_single_ver2(datasets, outfile, data_dir = "./out_files/",
     pp = PdfPages(outfile)
     for dataset in datasets:
         dat_rad = import_obs_pred_data(data_dir + dataset + '_obs_pred_rad.csv')
-        dat_raw = import_raw_data(dataset + '.csv')
+        dat_raw = import_raw_data('./data/'+ dataset + '.csv')
         dat_freq = import_obs_pred_data(data_dir + dataset + '_obs_pred_freq.csv')
         dat_mr = import_obs_pred_data(data_dir + dataset + '_obs_pred_avg_mr.csv')
         dat_par = import_obs_pred_data(data_dir + dataset + '_par.csv')
@@ -963,7 +963,7 @@ def plot_four_patterns_single_ver3(datasets, outfile, data_dir = "./out_files/",
     pp = PdfPages(outfile)
     for dataset in datasets:
         dat_rad = import_obs_pred_data(data_dir + dataset + '_obs_pred_rad.csv')
-        dat_raw = import_raw_data(dataset + '.csv')
+        dat_raw = import_raw_data('./data/' + dataset + '.csv')
         dat_isd = import_obs_pred_data(data_dir + dataset + '_obs_pred_isd_dbh2.csv')
         dat_mr = import_obs_pred_data(data_dir + dataset + '_obs_pred_avg_mr.csv')
         dat_iisd = import_obs_pred_data(data_dir + dataset + '_obs_pred_iisd_dbh2.csv')
@@ -1464,7 +1464,7 @@ def plot_spp_frequency_pdf(dat, spp_name1, spp_name2, data_dir = './out_files/')
 
 def plot_fig_A5():
     """Create a 1*2 plot comparing the empirical vs. randomized size-density relationship using BCI data"""
-    dat = import_raw_data('BCI.csv')
+    dat = import_raw_data('./data/BCI.csv')
     dbh_scale = np.array(dat['dbh'] / min(dat['dbh']))
     dbh2_scale = dbh_scale ** 2
     E0 = sum(dbh2_scale)
