@@ -2009,7 +2009,7 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs_pred_isd = dat_obs_pred_isd[dat_obs_pred_isd['site'] == site]
             dat_site_obs_isd = dat_site_obs_pred_isd['obs']
             dat_site_pred_isd = dat_site_obs_pred_isd['pred']
-            emp_rsquare_isd = macroecotools.obs_pred_rsquare(dat_site_obs_isd, dat_site_pred_isd)
+            emp_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_isd), np.log10(dat_site_pred_isd))
             emp_cdf_isd = macroecotools.get_emp_cdf(dat_site_obs_isd)
             emp_ks_isd = max(abs(emp_cdf_isd - np.array([psi.cdf(x) for x in dat_site_obs_isd])))
             
@@ -2039,7 +2039,7 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
                 psi_sample = psi_epsilon(S0, N_sample, E_sample)
                 beta_sample = get_beta(S0, N_sample)
                 sample_rsquare_sad, sample_loglik_sad, sample_ks_sad = \
-                    get_sample_stats_sad( sad_mc_sample, sad_pred_sample, exp(-beta_sample), N_sample)
+                    get_sample_stats_sad(sad_mc_sample, sad_pred_sample, exp(-beta_sample), N_sample)
                 sample_ks_isd = max(abs(macroecotools.get_emp_cdf(isd_mc_sample) - \
                                         np.array([psi_sample.cdf(x) for x in isd_mc_sample])))
                 # Use multiprocessing to generate sample ISD
