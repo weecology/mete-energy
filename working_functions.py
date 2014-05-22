@@ -1968,4 +1968,117 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             
             out_file_iisd_loglik = open('iISD_bootstrap_loglik.txt', 'a')
             print>>out_file_iisd_loglik, ",".join(str(x) for x in  out_list_iisd_loglik)
-            out_file_iisd_loglik.close()                   
+            out_file_iisd_loglik.close()               
+            
+def get_pred_isd_point(psi_x):
+    psi, x = psi_x
+    return psi.ppf(x)
+
+def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
+    """Generate Monte Carlo samples from a discrete uniform distribution 
+    
+    for the SAD and a continuous uniform distribution for the ISD, fit METE to 
+    sample data, and compare the goodness-of-fit measures (R-squared and K-S)
+    with that of empirical data.
+    
+    dat_name - name of study
+    cutoff - minimum number of species required to run - 1
+    Niter - number of bootstrap samples
+    """
+    dat = import_raw_data('./data/' + dat_name + '.csv')
+    site_list = np.unique(dat['site'])
+    dat_obs_pred_sad = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_rad.csv')
+    dat_obs_pred_isd = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_isd_dbh2.csv')
+    
+    for site in site_list:
+        dat_site = dat[dat['site'] == site]
+        S0 = len(set(dat_site['sp']))
+        if S0 > cutoff:
+            N0 = len(dat_site)
+            dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            psi = psi_epsilon(S0, N0, E0)
+            beta = get_beta(S0, N0)
+            
+            dat_site_obs_pred_sad = dat_obs_pred_sad[dat_obs_pred_sad['site'] == site]
+            dat_site_obs_sad = dat_site_obs_pred_sad['obs']
+            dat_site_pred_sad = dat_site_obs_pred_sad['pred']
+            emp_rsquare_sad, emp_loglik_sad, emp_ks_sad = get_sample_stats_sad(dat_site_obs_sad, dat_site_pred_sad, exp(-beta), N0)
+            
+            dat_site_obs_pred_isd = dat_obs_pred_isd[dat_obs_pred_isd['site'] == site]
+            dat_site_obs_isd = dat_site_obs_pred_isd['obs']
+            dat_site_pred_isd = dat_site_obs_pred_isd['pred']
+            emp_rsquare_isd = macroecotools.obs_pred_rsquare(dat_site_obs_isd, dat_site_pred_isd)
+            emp_cdf_isd = macroecotools.get_emp_cdf(dat_site_obs_isd)
+            emp_ks_isd = max(abs(emp_cdf_isd - np.array([psi.cdf(x) for x in dat_site_obs_isd])))
+            
+            out_file_rsquare_sad = open('SAD_mc_rsquare.txt', 'a')
+            print>>out_file_rsquare_sad, ",".join([dat_name, site, str(emp_rsquare_sad)]),
+            out_file_rsquare_sad.close()
+            
+            out_file_ks_sad = open('SAD_mc_ks.txt', 'a')
+            print>>out_file_ks_sad, ",".join([dat_name, site, str(emp_ks_sad)]),
+            out_file_ks_sad.close()
+
+            out_file_rsquare_isd = open('ISD_mc_rsquare.txt', 'a')
+            print>>out_file_rsquare_isd, ",".join([dat_name, site, str(emp_rsquare_isd)]),
+            out_file_rsquare_isd.close()
+            
+            out_file_ks_isd = open('ISD_mc_ks.txt', 'a')
+            print>>out_file_ks_isd, ",".join([dat_name, site, str(emp_ks_isd)]),
+            out_file_ks_isd.close()
+            
+            num_pools = 8  # Assuming that 8 pools are to be created
+            for i in xrange(Niter):
+                sad_mc_sample = sorted(np.random.random_integers(1, (2 * N0 - S0) / S0, S0), reverse = True)
+                N_sample = sum(sad_mc_sample)
+                isd_mc_sample = sorted(np.random.uniform(1, 2*E0/N_sample - 1, N_sample), reverse = True)
+                E_sample = sum(isd_mc_sample)
+                sad_pred_sample = get_mete_rad(int(S0), int(N_sample))[0]
+                psi_sample = psi_epsilon(S0, N_sample, E_sample)
+                beta_sample = get_beta(S0, N_sample)
+                sample_rsquare_sad, sample_loglik_sad, sample_ks_sad = \
+                    get_sample_stats_sad( sad_mc_sample, sad_pred_sample, exp(-beta_sample), N_sample)
+                sample_ks_isd = max(abs(macroecotools.get_emp_cdf(isd_mc_sample) - \
+                                        np.array([psi_sample.cdf(x) for x in isd_mc_sample])))
+                # Use multiprocessing to generate sample ISD
+                scaled_rank = [(x + 0.5) / N_sample for x in range(N_sample)]
+                pool = multiprocessing.Pool(num_pools)
+                pred_isd_sample = sorted(pool.map(get_pred_isd_point, [(psi_sample, x) for x in scaled_rank]), reverse = True)
+                pool.close()
+                pool.join()
+                sample_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(isd_mc_sample), np.log10(pred_isd_sample))
+                
+                out_file_rsquare_sad = open('SAD_mc_rsquare.txt', 'a')
+                print>>out_file_rsquare_sad, "".join([',', str(sample_rsquare_sad)]), 
+                out_file_rsquare_sad.close()
+                
+                out_file_ks_sad = open('SAD_mc_ks.txt', 'a')
+                print>>out_file_ks_sad, "".join([',', str(sample_ks_sad)]), 
+                out_file_ks_sad.close()
+    
+                out_file_rsquare_isd = open('ISD_mc_rsquare.txt', 'a')
+                print>>out_file_rsquare_isd, "".join([',', str(sample_rsquare_isd)]), 
+                out_file_rsquare_isd.close()
+                
+                out_file_ks_isd = open('ISD_mc_ks.txt', 'a')
+                print>>out_file_ks_isd, "".join([',', str(sample_ks_isd)]), 
+                out_file_ks_isd.close()
+            
+            out_file_rsquare_sad = open('SAD_mc_rsquare.txt', 'a')
+            print>>out_file_rsquare_sad, '\t'
+            out_file_rsquare_sad.close()
+            
+            out_file_ks_sad = open('SAD_mc_ks.txt', 'a')
+            print>>out_file_ks_sad, '\t'
+            out_file_ks_sad.close()
+
+            out_file_rsquare_isd = open('ISD_mc_rsquare.txt', 'a')
+            print>>out_file_rsquare_isd, '\t'
+            out_file_rsquare_isd.close()
+            
+            out_file_ks_isd = open('ISD_mc_ks.txt', 'a')
+            print>>out_file_ks_isd, '\t' 
+            out_file_ks_isd.close()
+            
