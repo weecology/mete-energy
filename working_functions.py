@@ -1678,7 +1678,16 @@ def AICc_ISD_to_file(dat_list, par_file, cutoff = 9, outfile = 'ISD_comp_all_sit
                 results['f5'] = AICc_list_site[3]
                 f_writer.writerows(results)
     f.close()
-            
+
+def write_to_file(path, content, new_line = True):
+    """Function to facilitate writing to file to avoid redundancy"""
+    out_file =  open(path, 'a')
+    if new_line:
+        print>>outfile, content
+    else:
+        print>>outfile, content,
+    out_file.close()
+               
 def get_sample_stats_sad(obs, pred, p, upper_bound):
     """Function that returns the three statistics for sample"""
     dat_rsquare = macroecotools.obs_pred_rsquare(np.log10(obs), np.log10(pred))
@@ -1728,17 +1737,9 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
                 out_list_loglik.append(sample_loglik)
                 out_list_ks.append(sample_ks)
   
-            out_file_rsquare = open('SAD_bootstrap_rsquare.txt', 'a')
-            print>>out_file_rsquare, ",".join(str(x) for x in out_list_rsquare)
-            out_file_rsquare.close()
-            
-            out_file_loglik = open('SAD_bootstrap_loglik.txt', 'a')
-            print>>out_file_loglik, ",".join(str(x) for x in out_list_loglik)
-            out_file_loglik.close()
-            
-            out_file_ks = open('SAD_bootstrap_ks.txt', 'a')
-            print>>out_file_ks, ",".join(str(x) for x in out_list_ks)
-            out_file_ks.close()
+            write_to_file('SAD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_rsquare))
+            write_to_file('SAD_bootstrap_loglik.txt', ",".join(str(x) for x in out_list_loglik))
+            write_to_file('SAD_bootstrap_ks.txt', ",".join(str(x) for x in out_list_ks)
 
 def generate_isd_sample(psi):
     """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
@@ -1792,17 +1793,9 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             
             del dbh_scale, dbh2_scale, dat_site_obs 
             
-            out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
-            print>>out_file_rsquare, ",".join([dat_name, site, str(emp_rsquare)]),
-            out_file_rsquare.close()
-            
-            out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
-            print>>out_file_loglik, ",".join([dat_name, site, str(emp_loglik)]),
-            out_file_loglik.close()
-            
-            out_file_ks = open('ISD_bootstrap_ks.txt', 'a')
-            print>>out_file_ks, ",".join([dat_name, site, str(emp_ks)]),
-            out_file_ks.close()
+            write_to_file('ISD_bootstrap_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare)]), new_line = False)
+            write_to_file('ISD_bootstrap_loglik.txt', ",".join([dat_name, site, str(emp_loglik)]), new_line = False)
+            write_to_file('ISD_bootstrap_ks.txt', ",".join([dat_name, site, str(emp_ks)]), new_line = False)
             
             num_pools = 8  # Assuming that 8 pools are to be created
             for i in xrange(Niter):
@@ -1822,29 +1815,13 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
                 cdf_i = sorted(cdf_i[:N0])
                 sample_ks = max([abs(x - (i+1)/N0) for i, x in enumerate(cdf_i)])
                 
-                out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
-                print>>out_file_rsquare, "".join([',', str(sample_rsquare)]), 
-                out_file_rsquare.close()
-                
-                out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
-                print>>out_file_loglik, "".join([',', str(sample_loglik)]), 
-                out_file_loglik.close()
-                
-                out_file_ks = open('ISD_bootstrap_ks.txt', 'a')
-                print>>out_file_ks, "".join([',', str(sample_ks)]), 
-                out_file_ks.close()
+                write_to_file('ISD_bootstrap_rsquare.txt', "".join([',', str(sample_rsquare)]), new_line = False)
+                write_to_file('ISD_bootstrap_loglik.txt', "".join([',', str(sample_loglik)]), new_line = False)
+                write_to_file('ISD_bootstrap_ks.txt', "".join([',', str(sample_ks)]), new_line = False)
             
-            out_file_rsquare = open('ISD_bootstrap_rsquare.txt', 'a')
-            print>>out_file_rsquare, '\t'
-            out_file_rsquare.close()
-            
-            out_file_loglik = open('ISD_bootstrap_loglik.txt', 'a')
-            print>>out_file_loglik, '\t'
-            out_file_loglik.close()
-            
-            out_file_ks = open('ISD_bootstrap_ks.txt', 'a')
-            print>>out_file_ks, '\t'
-            out_file_ks.close()               
+            write_to_file('ISD_bootstrap_rsquare.txt', '\t')
+            write_to_file('ISD_bootstrap_loglik.txt', '\t')
+            write_to_file('ISD_bootstrap_ks.txt', '\t')
 
 def generate_SDR_iISD_sample(input_list):
     dat_site, theta, dbh2_scale, dat_site_pred_sdr, dat_site_pred_iisd, dat_name, site = input_list
@@ -1865,9 +1842,7 @@ def generate_SDR_iISD_sample(input_list):
         ks_sp_i = max(abs(emp_cdf_sp_i - np.array([theta.cdf(x, n_sp) for x in sample_sp])))
         sample_i_ks.append(ks_sp_i)
         
-    out_file_iisd_ks = open('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', 'a')
-    print>>out_file_iisd_ks, ",".join(str(x) for x in sample_i_ks)
-    out_file_iisd_ks.close()
+    write_to_file('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in sample_i_ks))    
     
     sample_sdr_rsquare = macroecotools.obs_pred_rsquare(np.log10(sample_i_sdr), np.log10(dat_site_pred_sdr))
     sample_iisd_rsquare = macroecotools.obs_pred_rsquare(np.log10(sample_i_iisd), np.log10(dat_site_pred_iisd))
@@ -1908,10 +1883,8 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             
             emp_sdr_rsquare = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_sdr), np.log10(dat_site_pred_sdr))
             emp_iisd_rsquare = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_iisd), np.log10(dat_site_pred_iisd))
-            
-            
+                       
             out_list_sdr_rsquare = [dat_name, site, emp_sdr_rsquare]
-            
             out_list_iisd_rsquare = [dat_name, site, emp_iisd_rsquare]
             
             emp_iisd_loglik = 0
@@ -1928,10 +1901,8 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
                 emp_ks_list.append(ks_sp)
                 
             out_list_iisd_loglik = [dat_name, site, emp_iisd_loglik]
-            out_file_iisd_ks = open('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', 'a')
-            print>>out_file_iisd_ks, ",".join(str(x) for x in n_list)
-            print>>out_file_iisd_ks, ",".join(str(x) for x in emp_ks_list)
-            out_file_iisd_ks.close()
+            write_to_file('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in n_list)) 
+            write_to_file('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in emp_ks_list)) 
             
             input_list = [dat_site, theta, dbh2_scale, dat_site_pred_sdr, dat_site_pred_iisd, dat_name, site]
             num_pools = 8
@@ -1958,17 +1929,9 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             pool.close()
             pool.join()
             
-            out_file_sdr_rsquare = open('SDR_bootstrap_rsquare.txt', 'a')
-            print>>out_file_sdr_rsquare, ",".join(str(x) for x in out_list_sdr_rsquare)
-            out_file_sdr_rsquare.close()
-            
-            out_file_iisd_rsquare = open('iISD_bootstrap_rsquare.txt', 'a')
-            print>>out_file_iisd_rsquare, ",".join(str(x) for x in out_list_iisd_rsquare)
-            out_file_iisd_rsquare.close()
-            
-            out_file_iisd_loglik = open('iISD_bootstrap_loglik.txt', 'a')
-            print>>out_file_iisd_loglik, ",".join(str(x) for x in  out_list_iisd_loglik)
-            out_file_iisd_loglik.close()               
+            write_to_file('SDR_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_sdr_rsquare))
+            write_to_file('iISD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_iisd_rsquare))
+            write_to_file('iISD_bootstrap_loglik.txt', ",".join(str(x) for x in  out_list_iisd_loglik))
             
 def get_pred_isd_point(psi_x):
     psi, x = psi_x
@@ -1990,6 +1953,83 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
     dat_obs_pred_sad = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_rad.csv')
     dat_obs_pred_isd = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_isd_dbh2.csv')
     
+    for site in site_list:
+        dat_site = dat[dat['site'] == site]
+        S0 = len(set(dat_site['sp']))
+        if S0 > cutoff:
+            N0 = len(dat_site)
+            dbh_scale = np.array(dat_site['dbh'] / min(dat_site['dbh']))
+            dbh2_scale = dbh_scale ** 2
+            E0 = sum(dbh2_scale)
+            psi = psi_epsilon(S0, N0, E0)
+            beta = get_beta(S0, N0)
+            
+            dat_site_obs_pred_sad = dat_obs_pred_sad[dat_obs_pred_sad['site'] == site]
+            dat_site_obs_sad = dat_site_obs_pred_sad['obs']
+            dat_site_pred_sad = dat_site_obs_pred_sad['pred']
+            emp_rsquare_sad, emp_loglik_sad, emp_ks_sad = get_sample_stats_sad(dat_site_obs_sad, dat_site_pred_sad, exp(-beta), N0)
+            
+            dat_site_obs_pred_isd = dat_obs_pred_isd[dat_obs_pred_isd['site'] == site]
+            dat_site_obs_isd = dat_site_obs_pred_isd['obs']
+            dat_site_pred_isd = dat_site_obs_pred_isd['pred']
+            emp_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_isd), np.log10(dat_site_pred_isd))
+            emp_cdf_isd = macroecotools.get_emp_cdf(dat_site_obs_isd)
+            emp_ks_isd = max(abs(emp_cdf_isd - np.array([psi.cdf(x) for x in dat_site_obs_isd])))
+            
+            write_to_file('SAD_mc_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare_sad)]), new_line = False)
+            write_to_file('SAD_mc_ks.txt', ",".join([dat_name, site, str(emp_ks_sad)]), new_line = False)
+            write_to_file('ISD_mc_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare_isd)]), new_line = False)
+            write_to_file('ISD_mc_ks.txt', ",".join([dat_name, site, str(emp_ks_isd)]), new_line = False)
+            
+            num_pools = 8  # Assuming that 8 pools are to be created
+            for i in xrange(Niter):
+                sad_mc_sample = sorted(np.random.random_integers(1, (2 * N0 - S0) / S0, S0), reverse = True)
+                N_sample = sum(sad_mc_sample)
+                isd_mc_sample = sorted(np.random.uniform(1, 2*E0/N_sample - 1, N_sample), reverse = True)
+                E_sample = sum(isd_mc_sample)
+                sad_pred_sample = get_mete_rad(int(S0), int(N_sample))[0]
+                psi_sample = psi_epsilon(S0, N_sample, E_sample)
+                beta_sample = get_beta(S0, N_sample)
+                sample_rsquare_sad, sample_loglik_sad, sample_ks_sad = \
+                    get_sample_stats_sad(sad_mc_sample, sad_pred_sample, exp(-beta_sample), N_sample)
+                sample_ks_isd = max(abs(macroecotools.get_emp_cdf(isd_mc_sample) - \
+                                        np.array([psi_sample.cdf(x) for x in isd_mc_sample])))
+                # Use multiprocessing to generate sample ISD
+                scaled_rank = [(x + 0.5) / N_sample for x in range(N_sample)]
+                pool = multiprocessing.Pool(num_pools)
+                pred_isd_sample = sorted(pool.map(get_pred_isd_point, [(psi_sample, x) for x in scaled_rank]), reverse = True)
+                pool.close()
+                pool.join()
+                sample_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(isd_mc_sample), np.log10(pred_isd_sample))
+                
+                write_to_file('SAD_mc_rsquare.txt', "".join([',', str(sample_rsquare_sad)]), new_line = False)
+                write_to_file('SAD_mc_ks.txt', "".join([',', str(sample_ks_sad)]), new_line = False)
+                write_to_file('ISD_mc_rsquare.txt', "".join([',', str(sample_rsquare_isd)]), new_line = False)
+                write_to_file('ISD_mc_ks.txt', "".join([',', str(sample_ks_isd)]), new_line = False)
+            
+            write_to_file('SAD_mc_rsquare.txt', '\t')
+            write_to_file('SAD_mc_ks.txt', '\t')
+            write_to_file('ISD_mc_rsquare.txt', '\t')
+            write_to_file('ISD_mc_ks.txt', '\t')
+
+def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
+    """Alternative method to generate bootstrap samples from the 
+    
+    distributions predicted by METE and compare with the fit of METE
+    to emprical data.
+    Here the patterns are generated together, instead of each independently from the 
+    predicted distribution. First, a sample of length S0 is drawn from the SAD predicted
+    by METE. Then for each of the S0 species, a sample of length n (species abundance)
+    is drawn from the iISD with corresponding n predicted by METE. METE is then applied 
+    to the bootstrap data, and goodness-of-fit measures (R^2 and K-S statistic) recorded.
+    
+    dat_name - name of study
+    cutoff - minimum number of species required to run - 1
+    Niter - number of bootstrap samples
+    """
+    dat = import_raw_data('./data/' + dat_name + '.csv')
+    site_list = np.unique(dat['site'])
+
     for site in site_list:
         dat_site = dat[dat['site'] == site]
         S0 = len(set(dat_site['sp']))
