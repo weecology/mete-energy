@@ -1937,6 +1937,10 @@ def get_pred_isd_point(psi_x):
     psi, x = psi_x
     return psi.ppf(x)
 
+def get_pred_cdf_point(psi_x):
+    psi, x = psi_x
+    return psi.cdf(x)
+
 def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
     """Generate Monte Carlo samples from a discrete uniform distribution 
     
@@ -1953,6 +1957,7 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
     dat_obs_pred_sad = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_rad.csv')
     dat_obs_pred_isd = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_isd_dbh2.csv')
     
+    num_pools = 8  # Assuming that 8 pools are to be created
     for site in site_list:
         dat_site = dat[dat['site'] == site]
         S0 = len(set(dat_site['sp']))
@@ -1973,15 +1978,21 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
             dat_site_obs_isd = dat_site_obs_pred_isd['obs']
             dat_site_pred_isd = dat_site_obs_pred_isd['pred']
             emp_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(dat_site_obs_isd), np.log10(dat_site_pred_isd))
-            emp_cdf_isd = macroecotools.get_emp_cdf(dat_site_obs_isd)
-            emp_ks_isd = max(abs(emp_cdf_isd - np.array([psi.cdf(x) for x in dat_site_obs_isd])))
+            emp_cdf_isd = sorted(macroecotools.get_emp_cdf(dat_site_obs_isd))
+            
+            # Obtain predicted cdf is one of the time-limiting steps. Use multiprocessing. 
+            pool = multiprocessing.Pool(num_pools)
+            emp_cdf_isd_pred = pool.map(get_pred_cdf_point, [(psi, x) for x in dat_site_obs_isd])
+            pool.close()
+            pool.join()
+            emp_cdf_isd_pred = sorted(emp_cdf_isd_pred)
+            emp_ks_isd = max(abs(np.array(emp_cdf_isd) - np.array(emp_cdf_isd_pred)))
             
             write_to_file('SAD_mc_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare_sad)]), new_line = False)
             write_to_file('SAD_mc_ks.txt', ",".join([dat_name, site, str(emp_ks_sad)]), new_line = False)
             write_to_file('ISD_mc_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare_isd)]), new_line = False)
             write_to_file('ISD_mc_ks.txt', ",".join([dat_name, site, str(emp_ks_isd)]), new_line = False)
             
-            num_pools = 8  # Assuming that 8 pools are to be created
             for i in xrange(Niter):
                 sad_mc_sample = sorted(np.random.random_integers(1, (2 * N0 - S0) / S0, S0), reverse = True)
                 N_sample = sum(sad_mc_sample)
@@ -1992,8 +2003,14 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
                 beta_sample = get_beta(S0, N_sample)
                 sample_rsquare_sad, sample_loglik_sad, sample_ks_sad = \
                     get_sample_stats_sad(sad_mc_sample, sad_pred_sample, exp(-beta_sample), N_sample)
-                sample_ks_isd = max(abs(macroecotools.get_emp_cdf(isd_mc_sample) - \
-                                        np.array([psi_sample.cdf(x) for x in isd_mc_sample])))
+                
+                pool = multiprocessing.Pool(num_pools)
+                sample_cdf_isd_pred = pool.map(get_pred_cdf_point, [(psi_sample, x) for x in isd_mc_sample])
+                pool.close()
+                pool.join()
+                sample_cdf_isd_pred = sorted(sample_cdf_isd_pred)
+                sample_ks_isd = max(abs(np.array(sorted(macroecotools.get_emp_cdf(isd_mc_sample))) - \
+                                        np.array(sample_cdf_isd_pred)))
                 # Use multiprocessing to generate sample ISD
                 scaled_rank = [(x + 0.5) / N_sample for x in range(N_sample)]
                 num_piece = int(N_sample / 100 / num_pools) # Do calculation for only 100 individuals at a time on each core to prevent crash
