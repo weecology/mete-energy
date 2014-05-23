@@ -1683,9 +1683,9 @@ def write_to_file(path, content, new_line = True):
     """Function to facilitate writing to file to avoid redundancy"""
     out_file =  open(path, 'a')
     if new_line:
-        print>>outfile, content
+        print>>out_file , content
     else:
-        print>>outfile, content,
+        print>>out_file , content,
     out_file.close()
                
 def get_sample_stats_sad(obs, pred, p, upper_bound):
@@ -1739,7 +1739,7 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
   
             write_to_file('SAD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_rsquare))
             write_to_file('SAD_bootstrap_loglik.txt', ",".join(str(x) for x in out_list_loglik))
-            write_to_file('SAD_bootstrap_ks.txt', ",".join(str(x) for x in out_list_ks)
+            write_to_file('SAD_bootstrap_ks.txt', ",".join(str(x) for x in out_list_ks))
 
 def generate_isd_sample(psi):
     """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
@@ -1996,10 +1996,16 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
                                         np.array([psi_sample.cdf(x) for x in isd_mc_sample])))
                 # Use multiprocessing to generate sample ISD
                 scaled_rank = [(x + 0.5) / N_sample for x in range(N_sample)]
-                pool = multiprocessing.Pool(num_pools)
-                pred_isd_sample = sorted(pool.map(get_pred_isd_point, [(psi_sample, x) for x in scaled_rank]), reverse = True)
-                pool.close()
-                pool.join()
+                num_piece = int(N_sample / 100 / num_pools) # Do calculation for only 100 individuals at a time on each core to prevent crash
+                pred_isd_sample = []
+                for j in range(num_piece + 1):
+                    pool = multiprocessing.Pool(num_pools)
+                    scaled_rank_piece = scaled_rank[(j * 100 * num_pools):min((j + 1) * 100 * num_pools, N_sample)]
+                    pred_isd_piece = pool.map(get_pred_isd_point, [(psi_sample, x) for x in scaled_rank_piece])
+                    pred_isd_sample.extend(pred_isd_piece)
+                    pool.close()
+                    pool.join()
+                pred_isd_sample = sorted(pred_isd_sample, reverse = True)
                 sample_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(isd_mc_sample), np.log10(pred_isd_sample))
                 
                 write_to_file('SAD_mc_rsquare.txt', "".join([',', str(sample_rsquare_sad)]), new_line = False)
