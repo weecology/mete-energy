@@ -2065,29 +2065,27 @@ def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
             beta = get_beta(S0, N0)
             theta = theta_epsilon(S0, N0, E0)
             emp_SAD = sorted([len(dat_site[dat_site['sp'] == sp]) for sp in sorted(list(set(dat_site['sp'])))], reverse = True)
+            
+            write_to_file('SAD_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
+            write_to_file('SAD_bootstrap_alt_ks.txt', ",".join([dat_name, site]), new_line = False)
+            write_to_file('ISD_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
+            write_to_file('ISD_bootstrap_alt_ks.txt', ",".join([dat_name, site]), new_line = False)
+            write_to_file('SDR_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
+            write_to_file('iISD_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
+
             for i in xrange(Niter+1):
                 sp_list = []
                 dbh2_list = []  
-                if i == 0: # Record results for empirical data for the first round
-                    write_to_file('SAD_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
-                    write_to_file('SAD_bootstrap_alt_ks.txt', ",".join([dat_name, site]), new_line = False)
-                    write_to_file('ISD_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
-                    write_to_file('ISD_bootstrap_alt_ks.txt', ",".join([dat_name, site]), new_line = False)
-                    write_to_file('SDR_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
-                    write_to_file('iISD_bootstrap_alt_rsquare.txt', ",".join([dat_name, site]), new_line = False)
-                    
+                if i == 0: # Record results for empirical data for the first round                  
                     sad_sample = emp_SAD
                     N_sample = N0
-                    n_list = []
                     for sp in sorted(list(set(dat_site['sp']))):
                         dbh2_sp = dbh2_scale[dat_site['sp'] == sp]
                         sp_list.extend([sp] * len(dbh2_sp))
                         dbh2_list.extend(sorted(dbh2_sp, reverse = True))
-                        n_list.append(len(dbh2_sp))
                     write_to_file('iISD_bootstrap_alt_ks_' + dat_name + '_' + site + '.txt', \
-                                  ",".join(str(x) for x in sorted(n_list, reverse = True)))
+                                  ",".join(str(x) for x in emp_SAD))
                     E_sample  = E0
-                    psi_sample = psi
                     beta_sample = beta
                     theta_sample = theta
                     
@@ -2101,13 +2099,13 @@ def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
                         sp_list.extend([str(sp)] * n_sp)
                         dbh2_list.extend(sorted(theta.rvs(n_sp, n_sp)))
                     E_sample = sum(dbh2_list)
+                    # Re-apply METE to bootstrap data
                     beta_sample = get_beta(S0, N_sample)
-                    psi_sample = psi_epsilon(S0, N_sample, E_sample)
                     theta_sample = theta_epsilon(S0, N_sample, E_sample)
-                sp_and_dbh2 = np.zeros((len(N_sample), ), dtype = [('sp', 'S15'), ('dbh2', 'f8')])
+                psi_sample = psi_epsilon(S0, N_sample, E_sample)
+                sp_and_dbh2 = np.zeros((N_sample, ), dtype = [('sp', 'S25'), ('dbh2', 'f8')])
                 sp_and_dbh2['sp'] = np.array(sp_list)
                 sp_and_dbh2['dbh2'] = np.array(dbh2_list)
-                # Re-apply METE to bootstrap data
                 # 1. SAD
                 pred_sad_sample = get_mete_rad(int(S0), int(N_sample))[0]
                 sample_rsquare_sad = macroecotools.obs_pred_rsquare(np.log10(sad_sample), np.log10(pred_sad_sample))
@@ -2119,14 +2117,26 @@ def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
                 # 2. ISD
                 isd_sample = sorted(sp_and_dbh2['dbh2'], reverse = True)
                 scaled_rank = [(x + 0.5) / N_sample for x in xrange(N_sample)]
-                pool = multiprocessing.Pool(num_pools)
-                pred_isd_sample = sorted(pool.map(get_pred_isd_point, [(psi_sample, x) for x in scaled_rank]), reveres = True)
-                pool.close()
-                pool.join()
+                num_piece = int(N_sample / 100 / num_pools) # Do calculation for only 100 individuals at a time on each core to prevent crash
+                pred_isd_sample = []                
+                for j in range(num_piece + 1):
+                    pool = multiprocessing.Pool(num_pools)
+                    scaled_rank_piece = scaled_rank[(j * 100 * num_pools):min((j + 1) * 100 * num_pools, N_sample)]
+                    pred_isd_piece = pool.map(get_pred_isd_point, [(psi_sample, x) for x in scaled_rank_piece])
+                    pred_isd_sample.extend(pred_isd_piece)
+                    pool.close()
+                    pool.join()
+                pred_isd_sample = sorted(pred_isd_sample, reverse = True)
                 sample_rsquare_isd = macroecotools.obs_pred_rsquare(np.log10(isd_sample), np.log10(pred_isd_sample))
                 write_to_file('ISD_bootstrap_alt_rsquare.txt', "".join([',', str(sample_rsquare_isd)]), new_line = False)
-                sample_isd_cdf = macroecotools.get_emp_cdf(isd_sample)
-                sample_ks_isd = max(abs(sample_isd_cdf - np.array([psi_sample.cdf(x) for x in isd_sample])))
+                
+                sample_isd_cdf = macroecotools.get_emp_cdf(isd_sample)                
+                pool = multiprocessing.Pool(num_pools)
+                sample_isd_cdf_pred = pool.map(get_pred_cdf_point, [(psi_sample, x) for x in isd_sample])
+                pool.close()
+                pool.join()
+                sample_isd_cdf_pred = sorted(sample_isd_cdf_pred, reverse = True)
+                sample_ks_isd = max(abs(sample_isd_cdf - np.array(sample_isd_cdf_pred)))
                 write_to_file('ISD_bootstrap_alt_ks.txt', "".join([',', str(sample_ks_isd)]), new_line = False)
                 # 3. SDR and iISD
                 sdr_sample = []
@@ -2138,14 +2148,14 @@ def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
                 for sp in np.unique(sp_and_dbh2['sp']):
                     sample_dbh2_sp = sp_and_dbh2[sp_and_dbh2['sp'] == sp]['dbh2']
                     sdr_sample.append(sum(sample_dbh2_sp) / len(sample_dbh2_sp))
+                    pred_sdr_sample.append(theta_sample.E(len(sample_dbh2_sp)))
                     iisd_sample.extend(sorted(sample_dbh2_sp))
                     pred_iisd_sample_sp = get_iisd_pred_dbh2(sample_dbh2_sp, E_sample, len(sample_dbh2_sp) * psi_sample.lambda2)
                     pred_iisd_sample.extend(pred_iisd_sample_sp)
-                    pred_sdr_sample.append(theta_sample.E(len(sample_dbh2_sp)))
                     n_list.append(len(sample_dbh2_sp))
                     sample_iisd_cdf_sp = macroecotools.get_emp_cdf(sample_dbh2_sp)
                     sample_iisd_ks_sp = max(abs(sample_iisd_cdf_sp - \
-                                                np.array([theta_sample.cdf(x, len(sample_dbh2)) for x in sample_dbh2_sp])))
+                                                np.array([theta_sample.cdf(x, len(sample_dbh2_sp)) for x in sample_dbh2_sp])))
                     sample_iisd_ks_list.append(sample_iisd_ks_sp)
                 sample_sdr_rsquare = macroecotools.obs_pred_rsquare(np.log10(sdr_sample), np.log10(pred_sdr_sample))
                 write_to_file('SDR_bootstrap_alt_rsquare.txt', "".join([',', str(sample_sdr_rsquare)]), new_line = False)
