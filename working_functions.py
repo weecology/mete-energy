@@ -6,6 +6,7 @@ import csv
 import matplotlib
 matplotlib.use('Agg')
 
+import os
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
@@ -1836,6 +1837,8 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
     cutoff - minimum number of species required to run - 1
     Niter - number of bootstrap samples
     """
+    if not os.path.exists('./out_files/iISD_bootstrap_ks/'):
+        os.makedirs('./out_files/iISD_bootstrap_ks/')
     dat = import_raw_data('./data/' + dat_name + '.csv')
     site_list = np.unique(dat['site'])
     dat_obs_pred_sdr = import_obs_pred_data('./out_files/' + dat_name + '_obs_pred_avg_mr.csv')
@@ -1908,7 +1911,7 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             pool.close()
             pool.join()
             
-            write_to_file('/out_files/SDR_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_sdr_rsquare))
+            write_to_file('./out_files/SDR_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_sdr_rsquare))
             write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_iisd_rsquare))
             write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_loglik.txt', ",".join(str(x) for x in  out_list_iisd_loglik))
             
@@ -2042,6 +2045,9 @@ def create_Fig_D1(dat_sad, dat_isd):
     plt.ylabel(r'$R^2$', fontsize = 8)
     plt.title('ISD', fontsize = 14)
     plt.savefig('Figure D1.pdf', dpi = 600)
+
+def create_Fig_E1():
+    fig = plt.figure(figsize = (7, 7))
     
 def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
     """Alternative method to generate bootstrap samples from the 
