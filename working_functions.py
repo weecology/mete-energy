@@ -2014,6 +2014,35 @@ def montecarlo_uniform_SAD_ISD(dat_name, cutoff = 9, Niter = 500):
             write_to_file('ISD_mc_rsquare.txt', '\t')
             write_to_file('ISD_mc_ks.txt', '\t')
 
+def plot_montecarlo(dat_mc, ax = None):
+    """Plot the comparison between original statistic and Monte Carlo simulations."""
+    if not ax:
+        fig = plt.figure(figsize = (3.5, 3.5))
+        ax = plt.subplot(111)
+    
+    dat_sort = dat_mc[dat_mc.argsort(order = 'orig')]
+    stat_orig = dat_sort['orig']
+    stat_low = [min(list(dat_sort[i])[3:]) for i in range(len(dat_sort))]
+    stat_high = [max(list(dat_sort[i])[3:]) for i in range(len(dat_sort))]
+    plt.scatter(range(1, len(dat_sort) + 1), stat_orig, c = 'black', s = 8)
+    plt.fill_between(range(1, len(dat_sort) + 1), stat_low, stat_high, color = 'grey')
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 6)  
+    return ax
+
+def create_Fig_D1(dat_sad, dat_isd):
+    fig = plt.figure(figsize = (7, 3.8))
+    ax_sad = plt.subplot(121)
+    plot_montecarlo(dat_sad, ax = ax_sad)
+    plt.xlabel('Site', fontsize = 8)
+    plt.ylabel(r'$R^2$', fontsize = 8)
+    plt.title('SAD', fontsize = 14)
+    ax_isd = plt.subplot(122)
+    plot_montecarlo(dat_isd, ax = ax_isd)
+    plt.xlabel('Site', fontsize = 8)
+    plt.ylabel(r'$R^2$', fontsize = 8)
+    plt.title('ISD', fontsize = 14)
+    plt.savefig('Figure D1.pdf', dpi = 600)
+    
 def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
     """Alternative method to generate bootstrap samples from the 
     
