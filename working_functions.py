@@ -2130,6 +2130,111 @@ def create_Fig_E1():
     plt.ylabel('Frequency', fontsize = 8)
     
     plt.savefig('Figure E1.pdf', dpi = 600)
+
+def plot_hist_quan(dat_file, dat_type = 'r2', ax = None):    
+    """Subfunction used in create_Fig_E2()"""
+    if not ax:
+        fig = plt.figure(figsize = (3.5, 3.5))
+        ax = plt.subplot(111)
+  
+    quan_list = []
+    num_row = len(dat_file['dataset'])
+    for i in range(num_row):
+        dat_row = list(dat_file[i])
+        stat_orig = dat_row[2]
+        stat_sim = dat_row[3:]
+        if dat_type == 'r2':
+            quan_row = len([x for x in stat_sim if x < stat_orig]) / len(stat_sim)
+        else: quan_row = len([x for x in stat_sim if x > stat_orig]) / len(stat_sim)
+        quan_list.append(quan_row)
+    
+    n, bins, patches = plt.hist(quan_list,  facecolor='grey', alpha=0.5, range = (0, 1))
+    ax.annotate('Communities with 0 quantiles: ' + str(len([x for x in quan_list if x == 0])), \
+                xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 8)
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.ylim(0, max(n) * 1.2)
+    return ax
+
+def plot_hist_quan_iisd_ks(dat_dir, ax = None):    
+    """Subfunction used in create_Fig_E2()"""
+    if not ax:
+        fig = plt.figure(figsize = (3.5, 3.5))
+        ax = plt.subplot(111)
+    
+    list_of_files = os.listdir(dat_dir)
+    quan_list = []
+    for file_name in list_of_files:
+        dat_file = import_bootstrap_iisd_ks(dat_dir + file_name)
+        ncol = len(dat_file[0])
+        dat_abd = 0
+        dat_quan = 0
+        for i in range(ncol):
+            dat_col = dat_file['f' + str(i)]
+            if dat_col[0] >= 10:
+                dat_abd += dat_col[0]
+                col_quan = len([x for x in dat_col[2:] if x > dat_col[1]]) / len(dat_col[2:])
+                dat_quan += col_quan * dat_col[0]
+        quan_list.append(dat_quan / dat_abd)
+    
+    n, bins, patches = plt.hist(quan_list,  facecolor='grey', alpha=0.5, range = (0, 1))
+    ax.annotate('Communities with 0 quantiles: ' + str(len([x for x in quan_list if x == 0])), \
+                xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 8)
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.ylim(0, max(n) * 1.2)
+    return ax
+
+def create_Fig_E2():
+    fig = plt.figure(figsize = (7, 14))
+    sad_r2 = import_bootstrap_file('./out_files/SAD_bootstrap_rsquare.txt', Niter = 500)
+    ax_1 = plt.subplot(421)
+    plot_hist_quan(sad_r2, ax = ax_1)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title(r'SAD, $R^2$', fontsize = 10)
+ 
+    sad_ks = import_bootstrap_file('./out_files/SAD_bootstrap_ks.txt', Niter = 500)
+    ax_2 = plt.subplot(422)
+    plot_hist_quan(sad_ks, dat_type = 'ks', ax = ax_2)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title('SAD, K-S Statistic', fontsize = 10)
+ 
+    isd_r2 = import_bootstrap_file('./out_files/ISD_bootstrap_rsquare.txt', Niter = 500)
+    ax_3 = plt.subplot(423)
+    plot_hist_quan(isd_r2, ax = ax_3)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title(r'ISD, $R^2$', fontsize = 10)
+ 
+    isd_ks = import_bootstrap_file('./out_files/ISD_bootstrap_ks.txt', Niter = 500)
+    ax_4 = plt.subplot(424)
+    plot_hist_quan(isd_ks, dat_type = 'ks', ax = ax_4)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title('ISD, K-S Statistic', fontsize = 10)
+
+    iisd_r2 = import_bootstrap_file('./out_files/iISD_bootstrap_rsquare.txt', Niter = 500)
+    ax_5 = plt.subplot(425)
+    plot_hist_quan(iisd_r2, ax = ax_5)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title(r'iISD, $R^2$', fontsize = 10)
+   
+    ax_6 = plt.subplot(426)
+    plot_hist_quan_iisd_ks('./out_files/iISD_bootstrap_ks/', ax = ax_6)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title('iISD, K-S Statistic', fontsize = 10)
+    
+    sdr_r2 = import_bootstrap_file('./out_files/SDR_bootstrap_rsquare.txt', Niter = 500)
+    ax_7 = plt.subplot(427)
+    plot_hist_quan(sdr_r2, ax = ax_7)
+    plt.xlabel('Quantile', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    plt.title(r'SDR, $R^2$', fontsize = 10)
+   
+    plt.subplots_adjust(wspace = 0.29, hspace = 0.29)
+    plt.savefig('Figure E2.pdf', dpi = 600)
     
 def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
     """Alternative method to generate bootstrap samples from the 
