@@ -1,4 +1,4 @@
-"""Rerun all analysis to make sure that results are up-to-date"""
+"""Rerun all analyses (except bootstrap) to make sure that results are up-to-date"""
 
 import os
 from working_functions import *
@@ -50,12 +50,12 @@ for dat_name in dat_alt_list:
 plot_four_patterns_single_ver3(dat_alt_list, 'Figure B1.pdf', radius_par = 0.5)
 
 #Figures C1-C3 
-plot_obs_pred_freq(dat_list, out_name = 'Figure C1.png', inset = True)
+plot_obs_pred_freq(dat_list, out_name = 'Figure C1.pdf', inset = True)
 ks_test(dat_list)
 ks_results = np.genfromtxt('./out_files/ks_test_1000_0.05.csv', dtype = "S15,S15,S15, f8", 
                            names = ['dat_name','site', 'sp','sig'], delimiter = ",")
-plot_dens_ks_test(ks_results['sig'], 0.05, out_fig = 'Figure C2.png')
-plot_obs_pred_iisd_par(dat_list, out_name = 'Figure C3.png', inset = True)
+plot_dens_ks_test(ks_results['sig'], 0.05, out_fig = 'Figure C2.pdf')
+plot_obs_pred_iisd_par(dat_list, out_name = 'Figure C3.pdf', inset = True)
 
 #Figure E1
 plot_four_patterns_single_ver3(dat_list, 'Figure E1.pdf')
