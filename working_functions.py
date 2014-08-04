@@ -1716,9 +1716,9 @@ def bootstrap_SAD(dat_name, cutoff = 9, Niter = 500):
                 out_list_loglik.append(sample_loglik)
                 out_list_ks.append(sample_ks)
   
-            write_to_file('SAD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_rsquare))
-            write_to_file('SAD_bootstrap_loglik.txt', ",".join(str(x) for x in out_list_loglik))
-            write_to_file('SAD_bootstrap_ks.txt', ",".join(str(x) for x in out_list_ks))
+            write_to_file('./out_files/SAD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_rsquare))
+            write_to_file('./out_files/SAD_bootstrap_loglik.txt', ",".join(str(x) for x in out_list_loglik))
+            write_to_file('./out_files/SAD_bootstrap_ks.txt', ",".join(str(x) for x in out_list_ks))
 
 def generate_isd_sample(psi):
     """Function for parallel computing called in bootstrap_rsquare_loglik_ISD"""
@@ -1772,9 +1772,9 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
             
             del dbh_scale, dbh2_scale, dat_site_obs 
             
-            write_to_file('ISD_bootstrap_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare)]), new_line = False)
-            write_to_file('ISD_bootstrap_loglik.txt', ",".join([dat_name, site, str(emp_loglik)]), new_line = False)
-            write_to_file('ISD_bootstrap_ks.txt', ",".join([dat_name, site, str(emp_ks)]), new_line = False)
+            write_to_file('./out_files/ISD_bootstrap_rsquare.txt', ",".join([dat_name, site, str(emp_rsquare)]), new_line = False)
+            write_to_file('./out_files/ISD_bootstrap_loglik.txt', ",".join([dat_name, site, str(emp_loglik)]), new_line = False)
+            write_to_file('./out_files/ISD_bootstrap_ks.txt', ",".join([dat_name, site, str(emp_ks)]), new_line = False)
             
             num_pools = 8  # Assuming that 8 pools are to be created
             for i in xrange(Niter):
@@ -1794,13 +1794,13 @@ def bootstrap_ISD(dat_name, cutoff = 9, Niter = 500):
                 cdf_i = sorted(cdf_i[:N0])
                 sample_ks = max([abs(x - (i+1)/N0) for i, x in enumerate(cdf_i)])
                 
-                write_to_file('ISD_bootstrap_rsquare.txt', "".join([',', str(sample_rsquare)]), new_line = False)
-                write_to_file('ISD_bootstrap_loglik.txt', "".join([',', str(sample_loglik)]), new_line = False)
-                write_to_file('ISD_bootstrap_ks.txt', "".join([',', str(sample_ks)]), new_line = False)
+                write_to_file('./out_files/ISD_bootstrap_rsquare.txt', "".join([',', str(sample_rsquare)]), new_line = False)
+                write_to_file('./out_files/ISD_bootstrap_loglik.txt', "".join([',', str(sample_loglik)]), new_line = False)
+                write_to_file('./out_files/ISD_bootstrap_ks.txt', "".join([',', str(sample_ks)]), new_line = False)
             
-            write_to_file('ISD_bootstrap_rsquare.txt', '\t')
-            write_to_file('ISD_bootstrap_loglik.txt', '\t')
-            write_to_file('ISD_bootstrap_ks.txt', '\t')
+            write_to_file('./out_files/ISD_bootstrap_rsquare.txt', '\t')
+            write_to_file('./out_files/ISD_bootstrap_loglik.txt', '\t')
+            write_to_file('./out_files/ISD_bootstrap_ks.txt', '\t')
 
 def generate_SDR_iISD_sample(input_list):
     dat_site, theta, dbh2_scale, dat_site_pred_sdr, dat_site_pred_iisd, dat_name, site = input_list
@@ -1821,7 +1821,7 @@ def generate_SDR_iISD_sample(input_list):
         ks_sp_i = max(abs(emp_cdf_sp_i - np.array([theta.cdf(x, n_sp) for x in sample_sp])))
         sample_i_ks.append(ks_sp_i)
         
-    write_to_file('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in sample_i_ks))    
+    write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in sample_i_ks))    
     
     sample_sdr_rsquare = macroecotools.obs_pred_rsquare(np.log10(sample_i_sdr), np.log10(dat_site_pred_sdr))
     sample_iisd_rsquare = macroecotools.obs_pred_rsquare(np.log10(sample_i_iisd), np.log10(dat_site_pred_iisd))
@@ -1880,8 +1880,8 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
                 emp_ks_list.append(ks_sp)
                 
             out_list_iisd_loglik = [dat_name, site, emp_iisd_loglik]
-            write_to_file('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in n_list)) 
-            write_to_file('iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in emp_ks_list)) 
+            write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in n_list)) 
+            write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_ks_' + dat_name + '_' + site + '.txt', ",".join(str(x) for x in emp_ks_list)) 
             
             input_list = [dat_site, theta, dbh2_scale, dat_site_pred_sdr, dat_site_pred_iisd, dat_name, site]
             num_pools = 8
@@ -1908,9 +1908,9 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             pool.close()
             pool.join()
             
-            write_to_file('SDR_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_sdr_rsquare))
-            write_to_file('iISD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_iisd_rsquare))
-            write_to_file('iISD_bootstrap_loglik.txt', ",".join(str(x) for x in  out_list_iisd_loglik))
+            write_to_file('/out_files/SDR_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_sdr_rsquare))
+            write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_iisd_rsquare))
+            write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_loglik.txt', ",".join(str(x) for x in  out_list_iisd_loglik))
             
 def get_pred_isd_point(psi_x):
     psi, x = psi_x
