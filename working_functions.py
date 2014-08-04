@@ -43,7 +43,16 @@ def import_par_table(par_table):
                               names = ['dataset', 'site', 'expon_par', 'pareto_par', 
                                        'weibull_k', 'weibull_lmd'], delimiter = ",")
     return par_table
-            
+
+def import_bootstrap_file(input_filename, Niter = 100):
+    """import the txt file containing results from bootstrap or Monte Carlo simulations."""
+    type_data = 'S25,S25' + ',f15' * (Niter + 1)
+    names_orig = ['dataset', 'site', 'orig']
+    names_sim = ['sample'+str(i) for i in xrange(1, Niter + 1)]
+    names_orig.extend(names_sim)
+    data = np.genfromtxt(input_filename, delimiter = ',', names = names_orig, dtype = type_data)
+    return data
+    
 def get_obs_pred_rad(raw_data, dataset_name, data_dir='./out_files/', cutoff = 9):
     """Use data to compare the predicted and empirical SADs and get results in csv files
     
@@ -562,36 +571,6 @@ def plot_rand_test(data_dir = './out_files/'):
 
     plt.subplots_adjust(hspace = 0.25, left = 0.25, right = 0.9, top = 0.95, bottom = 0.05)
     plt.savefig('rand_test.pdf', dpi = 400)
-
-#def plot_rand_test(data_dir = './out_files/'):
-    #"""Plot the results obtained from species_rand_test"""
-    #rand_mr = get_quantiles('mr_rand_sites.csv', data_dir = data_dir)
-    #rand_lambda = get_quantiles('lambda_rand_sites.csv', data_dir = data_dir)
-    #fig = plt.figure(figsize = (3.42, 7)) # 8.7cm single column width required by PNAS
-    #ax_mr = plt.subplot(211)
-    #plt.semilogy(np.arange(len(rand_mr[0])), rand_mr[0], 'ko-', markersize = 2)
-    #ax_mr.fill_between(np.arange(len(rand_mr[0])), rand_mr[1], rand_mr[2],
-                       #color = '#CFCFCF', edgecolor = '#CFCFCF')
-    #ax_mr.axes.get_xaxis().set_ticks([])
-    #y_ticks_mr = [r'$1.0$', r'$10.0$', r'$10^2$', r'$10^3$', r'$10^4$', r'$10^5$', 
-               #r'$10^6$', r'$10^7$', r'$10^8$', r'$10^9$', r'$10^{10}$', r'$10^{11}$']
-    #ax_mr.set_yticklabels(y_ticks_mr, fontsize = 6)
-    #ax_mr.set_xlabel('Plots', fontsize = 8)
-    #ax_mr.set_ylabel('MSE of size-abundance relationship', fontsize = 8)
-    
-    #ax_lambda = plt.subplot(212)
-    #plt.semilogy(np.arange(len(rand_lambda[0])), rand_lambda[0], 'ko-', markersize = 2)
-    #ax_lambda.fill_between(np.arange(len(rand_lambda[0])), rand_lambda[1], rand_lambda[2],
-                       #color = '#CFCFCF', edgecolor = '#CFCFCF')
-    #ax_lambda.axes.get_xaxis().set_ticks([])
-    #y_ticks_lambda = [r'$10^{-8}$', r'$10^{-7}$', r'$10^{-6}$', r'$10^{-5}$', r'$10^{-4}$', 
-                      #r'$10^{-3}$', r'$10^{-2}$', r'$0.1$', r'$1.0$', r'$10.0$']
-    #ax_lambda.set_yticklabels(y_ticks_lambda, fontsize = 6)
-    #ax_lambda.set_xlabel('Plots', fontsize = 8)
-    #ax_lambda.set_ylabel('MSE of iISD parameter', fontsize = 8)
-
-    #plt.subplots_adjust(hspace = 0.25, left = 0.25, right = 0.9, top = 0.95, bottom = 0.05)
-    #plt.savefig('rand_test.pdf', dpi = 400)
 
 def get_obs_pred_from_file(datasets, data_dir, filename):
     """Read obs and pred value from a file"""
