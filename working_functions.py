@@ -1912,8 +1912,8 @@ def bootstrap_SDR_iISD(dat_name, cutoff = 9, Niter = 500):
             pool.join()
             
             write_to_file('./out_files/SDR_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_sdr_rsquare))
-            write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_iisd_rsquare))
-            write_to_file('./out_files/iISD_bootstrap_ks/iISD_bootstrap_loglik.txt', ",".join(str(x) for x in  out_list_iisd_loglik))
+            write_to_file('./out_files/iISD_bootstrap_rsquare.txt', ",".join(str(x) for x in out_list_iisd_rsquare))
+            write_to_file('./out_files/iISD_bootstrap_loglik.txt', ",".join(str(x) for x in  out_list_iisd_loglik))
             
 def get_pred_isd_point(psi_x):
     psi, x = psi_x
