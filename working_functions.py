@@ -53,6 +53,26 @@ def import_bootstrap_file(input_filename, Niter = 100):
     names_orig.extend(names_sim)
     data = np.genfromtxt(input_filename, delimiter = ',', names = names_orig, dtype = type_data)
     return data
+
+def import_bootstrap_iisd_ks(input_filename, Niter = 500):
+    """Import the txt file containing results for iISD K-S statistic for a particular site."""
+    
+    in_file = open(input_filename, 'r')
+    for row in in_file:
+        break
+    abd = row.strip('\n').split(',')
+    abd = [float(x) for x in abd]
+    type_data = 'f15' + ',f15' * (len(abd) - 1)
+    data = np.zeros(Niter + 2, dtype = type_data)
+    data[0] = tuple(abd)
+    
+    i = 1
+    for row in in_file:
+        dat_row = row.strip('\n').split(',')
+        dat_row = [float(x) for x in dat_row]
+        data[i] = tuple(dat_row)
+        i += 1
+    return data
     
 def get_obs_pred_rad(raw_data, dataset_name, data_dir='./out_files/', cutoff = 9):
     """Use data to compare the predicted and empirical SADs and get results in csv files
@@ -2046,8 +2066,70 @@ def create_Fig_D1(dat_sad, dat_isd):
     plt.title('ISD', fontsize = 14)
     plt.savefig('Figure D1.pdf', dpi = 600)
 
+def plot_hist(orig_val, list_of_vals, annotate1, annotate2, annotate2_pos, ax = None):
+    """Subfunction used in create_Fig_E1()"""
+    if not ax:
+        fig = plt.figure(figsize = (3.5, 3.5))
+        ax = plt.subplot(111)
+    
+    bin_range = (min(orig_val, min(list_of_vals)), max(orig_val, max(list_of_vals)))    
+    n, bins, patches = plt.hist(list_of_vals,  facecolor='grey', alpha=0.5, range = bin_range)
+    plt.plot((orig_val, orig_val), (0, 0.75 * max(n)), 'r-', linewidth=2)
+    ax.annotate(annotate1, xy = (0.05, 0.92), xycoords = 'axes fraction', fontsize = 10)
+    if annotate2_pos == 'left':
+        ax.annotate(annotate2, xy = (0.05, 0.85), xycoords = 'axes fraction', fontsize = 8)
+    else: ax.annotate(annotate2, xy = (0.6, 0.85), xycoords = 'axes fraction', fontsize = 8)
+    ax.tick_params(axis = 'both', which = 'major', labelsize = 6)
+    plt.ylim(0, max(n) * 1.2)
+    return ax
+    
 def create_Fig_E1():
     fig = plt.figure(figsize = (7, 7))
+    # A. SAD R^2
+    sad_r2 = import_bootstrap_file('./out_files/SAD_bootstrap_rsquare.txt', Niter = 500)
+    sad_r2_row = list(sad_r2[sad_r2['dataset'] == 'FERP'][0]) # Use FERP to illustrate
+    sad_r2_orig = sad_r2_row[2]
+    sad_r2_sim = sad_r2_row[3:]
+    ax_a = plt.subplot(221)
+    quan_sad_r2 = round(len([x for x in sad_r2_sim if x < sad_r2_orig]) / len(sad_r2_sim), 2)
+    plot_hist(sad_r2_orig, sad_r2_sim, '(A)', 'Quantile: ' + str(quan_sad_r2), 'left', ax = ax_a)
+    plt.xlabel(r'$R^2$', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    
+    # B. SAD K-S statistic
+    sad_ks = import_bootstrap_file('./out_files/SAD_bootstrap_ks.txt', Niter = 500)
+    sad_ks_row = list(sad_ks[sad_ks['dataset'] == 'FERP'][0])
+    sad_ks_orig = sad_ks_row[2]
+    sad_ks_sim = sad_ks_row[3:]
+    ax_b = plt.subplot(222)
+    quan_sad_ks = round(len([x for x in sad_ks_sim if x > sad_ks_orig]) / len(sad_ks_sim), 2)
+    plot_hist(sad_ks_orig, sad_ks_sim, '(B)', 'Quantile: ' + str(quan_sad_ks), 'right', ax = ax_b)
+    plt.xlabel('K-S statistic', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    
+    # C. iISD R^2
+    iisd_r2 = import_bootstrap_file('./out_files/iISD_bootstrap_rsquare.txt', Niter = 500)
+    iisd_r2_row = list(iisd_r2[iisd_r2['dataset'] == 'FERP'][0]) # Use FERP to illustrate
+    iisd_r2_orig = iisd_r2_row[2]
+    iisd_r2_sim = iisd_r2_row[3:]
+    ax_c = plt.subplot(223)
+    quan_iisd_r2 = round(len([x for x in iisd_r2_sim if x < iisd_r2_orig]) / len(iisd_r2_sim), 2)
+    plot_hist(iisd_r2_orig, iisd_r2_sim, '(C)', 'Quantile: ' + str(quan_iisd_r2), 'left', ax = ax_c)
+    plt.xlabel(r'$R^2$', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    
+    # D. iISD K-S for one species
+    iisd_ks = import_bootstrap_iisd_ks('./out_files/iISD_bootstrap_ks/iISD_bootstrap_ks_FERP_FERP.txt')
+    iisd_ks_row = list(iisd_ks['f0'])
+    iisd_ks_orig = iisd_ks_row[1]
+    iisd_ks_sim = iisd_ks_row[2:]
+    ax_d = plt.subplot(224)
+    quan_iisd_ks = round(len([x for x in iisd_ks_sim if x > iisd_ks_orig]) / len(iisd_ks_sim), 2)
+    plot_hist(iisd_ks_orig, iisd_ks_sim, '(D)', 'Quantile: ' + str(quan_iisd_ks), 'right', ax = ax_d)
+    plt.xlabel('K-S statistic', fontsize = 8)
+    plt.ylabel('Frequency', fontsize = 8)
+    
+    plt.savefig('Figure E1.pdf', dpi = 600)
     
 def bootstrap_alternative(dat_name, cutoff = 9, Niter = 500):
     """Alternative method to generate bootstrap samples from the 
