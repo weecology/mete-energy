@@ -27,4 +27,4 @@ The Monte Carlo analysis (Appendix D) and the bootstrap (Appendix E), both of wh
 `python run_analyses_bootstrap.py`
 
 By default, figures will be saved to the home directory. 
-Intermediate output files will be saved to the subdirectory /out_files. 
+Intermediate output files will be saved to the subdirectory /out_files/. 
