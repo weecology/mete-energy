@@ -4,8 +4,8 @@ import os
 from working_functions import *
 from pyper import *
 
-# Datasets not included: Cocoli, Sherman, Luquillo, Shiramaki
-dat_list = ['FERP', 'ACA', 'WesternGhats', 'BCI', 'BVSF', 'Lahei', 
+# Datasets not included: BCI, Cocoli, Sherman, Luquillo, Shiramaki
+dat_list = ['FERP', 'ACA', 'WesternGhats', 'BVSF', 'Lahei', 
              'LaSelva', 'NC', 'Oosting', 'Serimbu'] 
 
 if not os.path.exists('./out_files/'):
@@ -20,8 +20,10 @@ for dat_name in dat_list:
     get_obs_pred_frequency(dat_i, dat_name)
     
 #Reproducing results in main text
-#Figure 1
-plot_fig1()
+#Figure 1 
+# Note that BCI data are not available for redistribution 
+# so Fig. 1 is recreated with data from FERP instead
+plot_fig1(dat_name = 'FERP', sp_name = 'Pseudotsuga menziesii')
 
 #Figure 2 (time-consuming step, can take several hours)
 plot_four_patterns_ver2(dat_list, radius_isd = 0.5, radius_iisd = 0.5, inset = True, out_name = 'Figure 2')
