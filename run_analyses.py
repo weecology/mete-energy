@@ -4,8 +4,8 @@ import os
 from working_functions import *
 from pyper import *
 
-# Datasets not included: BCI, Cocoli, Sherman, Shiramaki
-dat_list = ['FERP', 'ACA', 'WesternGhats', 'BVSF', 'Lahei', 
+# Datasets not included: BCI, Cocoli, Sherman, Shiramaki, Lahei
+dat_list = ['FERP', 'ACA', 'WesternGhats', 'BVSF', 
              'LaSelva', 'Luquillo', 'NC', 'Oosting', 'Serimbu'] 
 
 if not os.path.exists('./out_files/'):
