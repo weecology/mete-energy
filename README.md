@@ -9,7 +9,7 @@ Code in this repository replicates all analyses in the manuscript using a subset
 
 Data included in the repository (under folder ./data/) are redistributed with courtesy of original data owners. 
 They are a processed subset of the original datasets specifically designed for the replication of our analyses. 
-They will not be updated to reflect additional data collection or corrections to the data made after archiving.
+They do not have spatial/temporal components or other useful information that may be available in the original data, and will not be updated to reflect additional data collection or corrections to the data made after archiving.
 Readers interested in using the data for purposes other than replicating our analyses are advised to obtain the raw data from the original source.
 
 Setup
