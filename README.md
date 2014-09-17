@@ -6,9 +6,11 @@ The project has been developed by Xiao Xiao, Daniel J. McGlinn, and Ethan P. Whi
 Our manuscript is available on arXiv (http://arxiv.org/abs/1308.0731). 
 
 Code in this repository replicates all analyses in the manuscript using a subset of datasets. 
+
 Data included in the repository (under folder ./data/) are redistributed with courtesy of original data owners. 
-They are provided to serve the purpose of replicating our results only. 
-Readers interested in using the data for any other purposes need to obtain permission from the data owners.
+They are a processed subset of the original datasets specifically designed for the replication of our analyses. 
+They will not be updated to reflect additional data collection or corrections to the data made after archiving.
+Readers interested in using the data for purposes other than replicating our analyses are advised to obtain the raw data from the original source.
 
 Setup
 ------------
