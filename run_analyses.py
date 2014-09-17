@@ -66,7 +66,7 @@ plot_four_patterns_single_ver3(dat_list, 'Figure E1.pdf')
 # First need to create file "par_est.csv" with R
 r = R()
 r("source('dist_par_est.r')")
-r("dat_list = c('FERP', 'ACA', 'WesternGhats', 'BCI', 'BVSF', 'Lahei', 'LaSelva', 'NC', 'Oosting', 'Serimbu')")
+r("dat_list = c('FERP', 'ACA', 'WesternGhats', 'BVSF', 'LaSelva', 'Luquillo', 'NC', 'Oosting', 'Serimbu')")
 r("get_par(dat_list, 'par_est.csv')")
 
 AICc_ISD_to_file(dat_list, 'par_est.csv', outfile = 'Table F1.csv') 
