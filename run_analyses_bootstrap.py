@@ -3,9 +3,9 @@
 from working_functions import *
 import multiprocessing
 
-# Datasets not included: BCI, Cocoli, Sherman, Luquillo, Shiramaki
+# Datasets not included: BCI, Cocoli, Sherman, Shiramaki
 dat_list = ['FERP', 'ACA', 'WesternGhats', 'BVSF', 'Lahei', 
-             'LaSelva', 'NC', 'Oosting', 'Serimbu'] 
+             'LaSelva', 'Luquillo', 'NC', 'Oosting', 'Serimbu'] 
 
 # The following analyses assume that analyses in run_analyses.py
 # has already been conducted for corresponding datasets.
