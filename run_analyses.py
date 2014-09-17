@@ -33,7 +33,7 @@ plot_four_patterns_ver2(dat_list, radius_isd = 0.5, radius_iisd = 0.5, inset = T
 density_files = ['global', 'tropical', 'bci'] #Note that we don't have permission to redistribute Luquillo data
 density_dic = {}
 for dens_file in density_files:
-    dens_data = import_density_file('./data/' + dens_file + '_density_cleaned.csv')
+    dens_data = import_density_file('./data/' + dens_file + '_density.csv')
     for record in dens_data:
         if record[0] not in density_dic:
             density_dic[record[0]] = record[1]
